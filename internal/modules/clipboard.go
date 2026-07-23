@@ -12,7 +12,8 @@ import (
 // Setup: wl-paste --watch cliphist store (in autostart)
 func ClipboardSearch(query string) []Result {
 	lowerQuery := strings.ToLower(query)
-	if !strings.HasPrefix(lowerQuery, "clip") && !strings.HasPrefix(lowerQuery, "cb") {
+	directPaste := strings.HasPrefix(lowerQuery, "paste")
+	if !strings.HasPrefix(lowerQuery, "clip") && !strings.HasPrefix(lowerQuery, "cb") && !directPaste {
 		return nil
 	}
 
@@ -24,6 +25,8 @@ func ClipboardSearch(query string) []Result {
 		searchTerm = query[len("clip "):]
 	} else if strings.HasPrefix(lowerQuery, "cb ") {
 		searchTerm = query[len("cb "):]
+	} else if strings.HasPrefix(lowerQuery, "paste ") {
+		searchTerm = query[len("paste "):]
 	}
 
 	// Check if cliphist is available
@@ -72,7 +75,7 @@ func ClipboardSearch(query string) []Result {
 		}
 
 		clipID := id // capture
-		icon, desc := clipboardDisplay(preview)
+		icon, desc := clipboardDisplay(preview, directPaste)
 		results = append(results, Result{
 			Type:  "clipboard",
 			Title: preview,
@@ -87,6 +90,9 @@ func ClipboardSearch(query string) []Result {
 				copy := exec.Command("wl-copy")
 				copy.Stdin = bytes.NewReader(decoded)
 				copy.Run()
+				if directPaste {
+					pasteClipboard()
+				}
 			},
 		})
 
@@ -108,16 +114,30 @@ func ClipboardSearch(query string) []Result {
 	return results
 }
 
-func clipboardDisplay(preview string) (string, string) {
+func clipboardDisplay(preview string, directPaste bool) (string, string) {
+	action := "Copy"
+	if directPaste {
+		action = "Paste"
+	}
 	lower := strings.ToLower(preview)
 	switch {
 	case strings.Contains(lower, "image/") || strings.Contains(lower, ".png") || strings.Contains(lower, ".jpg") || strings.Contains(lower, ".jpeg") || strings.Contains(lower, ".webp"):
-		return "image-x-generic", "Copy image from clipboard history"
+		return "image-x-generic", action + " image from clipboard history"
 	case strings.Contains(lower, "file://") || strings.HasPrefix(lower, "/") || strings.HasPrefix(lower, "~"):
-		return "text-x-generic", "Copy file/path from clipboard history"
+		return "text-x-generic", action + " file/path from clipboard history"
 	case strings.HasPrefix(strings.TrimSpace(lower), "#") && len(strings.TrimSpace(lower)) == 7:
-		return "applications-graphics", "Copy color from clipboard history"
+		return "applications-graphics", action + " color from clipboard history"
 	default:
-		return "edit-paste", "Copy from clipboard history"
+		return "edit-paste", action + " from clipboard history"
+	}
+}
+
+func pasteClipboard() {
+	if _, err := exec.LookPath("wtype"); err == nil {
+		exec.Command("wtype", "-M", "ctrl", "v", "-m", "ctrl").Start()
+		return
+	}
+	if _, err := exec.LookPath("ydotool"); err == nil {
+		exec.Command("ydotool", "key", "29:1", "47:1", "47:0", "29:0").Start()
 	}
 }

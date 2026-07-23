@@ -9,5 +9,8 @@ type Result struct {
 	Preview         string // Optional preview text
 	PreviewImage    string // Optional preview image path
 	PreviewImageURL string // Optional remote preview image URL
+	KeepOpen        bool   // Keep launcher open after action
+	Confirm         bool   // Require confirmation before action
+	NavigateQuery   string // Optional query to set instead of quitting
 	Action          func() // Execute when selected
 }

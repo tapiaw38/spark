@@ -11,12 +11,12 @@ import (
 
 // SpotifyInfo contains current playback info
 type SpotifyInfo struct {
-	Title    string
-	Artist   string
-	Album    string
-	Status   string // Playing, Paused, Stopped
-	ArtURL   string
-	ArtPath  string // Local cached path
+	Title   string
+	Artist  string
+	Album   string
+	Status  string // Playing, Paused, Stopped
+	ArtURL  string
+	ArtPath string // Local cached path
 }
 
 // GetSpotifyInfo returns current playback information

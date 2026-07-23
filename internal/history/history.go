@@ -40,3 +40,12 @@ func Record(appName string) {
 func Score(appName string) int {
 	return counts[appName]
 }
+
+// Snapshot returns launch counts.
+func Snapshot() map[string]int {
+	out := make(map[string]int, len(counts))
+	for k, v := range counts {
+		out[k] = v
+	}
+	return out
+}

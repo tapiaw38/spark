@@ -26,6 +26,7 @@ var (
 	currentResults  []modules.Result
 	listBox         *gtk.ListBox
 	resultsScroll   *gtk.ScrolledWindow
+	searchEntry     *gtk.Entry
 	previewBox      *gtk.Box
 	previewImage    *gtk.Image
 	previewLabel    *gtk.Label
@@ -33,6 +34,7 @@ var (
 	searchVersion   uint64
 	previewVersion  uint64
 	quickLookActive bool
+	inActionMode    bool
 	debounceTimer   *time.Timer
 	iconCache       = make(map[string]*gdkpixbuf.Pixbuf)
 	iconCacheMu     sync.RWMutex
@@ -57,6 +59,13 @@ const (
 )
 
 func main() {
+	if len(os.Args) > 2 && os.Args[1] == "--large-type" {
+		gtk.Init()
+		showLargeType(os.Args[2])
+		gtk.Main()
+		os.Exit(0)
+	}
+
 	// Handle --setup flag
 	if len(os.Args) > 1 && os.Args[1] == "--setup" {
 		config.Load()
@@ -119,6 +128,7 @@ func main() {
 
 	// Search entry
 	entry := gtk.NewEntry()
+	searchEntry = entry
 	entry.SetPlaceholderText("Search apps, ;snippet, define word, > shell...")
 	entry.SetName("spark-entry")
 
@@ -168,6 +178,7 @@ func main() {
 	// Search on typing with debounce
 	entry.Connect("changed", func() {
 		query := entry.Text()
+		inActionMode = false
 
 		// Cancel previous timer
 		if debounceTimer != nil {
@@ -193,6 +204,11 @@ func main() {
 		keyEvent := event.AsKey()
 		switch keyEvent.Keyval() {
 		case gdk.KEY_Escape:
+			if inActionMode {
+				inActionMode = false
+				updateResults(searchEntry.Text())
+				return true
+			}
 			gtk.MainQuit()
 			return true
 		case gdk.KEY_Down:
@@ -203,6 +219,9 @@ func main() {
 			return true
 		case gdk.KEY_Return:
 			executeSelected()
+			return true
+		case gdk.KEY_Tab:
+			showSelectedFileActions()
 			return true
 		case gdk.KEY_Shift_L, gdk.KEY_Shift_R:
 			quickLookActive = !quickLookActive
@@ -270,43 +289,82 @@ func updateResults(query string) {
 		return
 	}
 
+	if results := modules.NavigationSearch(query); results != nil {
+		setResults(results)
+		return
+	}
+
+	if results := modules.DestinationPickerSearch(query); results != nil {
+		setResults(results)
+		return
+	}
+
+	if results := modules.FileOperationSearch(query); results != nil {
+		setResults(results)
+		return
+	}
+
 	// Collect results from all modules (priority order)
 	currentResults = nil
 
 	// 1. Shell commands (> prefix)
 	currentResults = append(currentResults, modules.ShellSearch(query)...)
 
-	// 2. Snippets (; prefix or "snip")
+	// 2. Help
+	currentResults = append(currentResults, modules.HelpSearch(query)...)
+
+	// 3. Large Type
+	currentResults = append(currentResults, modules.LargeTypeSearch(query)...)
+
+	// 4. Recent documents
+	currentResults = append(currentResults, modules.RecentSearch(query)...)
+
+	// 5. Contacts
+	currentResults = append(currentResults, modules.ContactsSearch(query)...)
+
+	// 6. Email
+	currentResults = append(currentResults, modules.EmailSearch(query)...)
+
+	// 7. Usage stats
+	currentResults = append(currentResults, modules.StatsSearch(query)...)
+
+	// 8. Settings sync helpers
+	currentResults = append(currentResults, modules.SyncSearch(query)...)
+
+	// 9. Snippets (; prefix or "snip")
 	currentResults = append(currentResults, modules.SnippetSearch(query)...)
 
-	// 3. Dictionary (define/def prefix)
+	// 10. Dictionary (define/def prefix)
 	currentResults = append(currentResults, modules.DictionarySearch(query)...)
 
-	// 4. Spelling (spell/spelling prefix)
+	// 11. Spelling (spell/spelling prefix)
 	currentResults = append(currentResults, modules.SpellSearch(query)...)
 
-	// 5. Calculator
+	// 12. Calculator
 	currentResults = append(currentResults, modules.CalcSearch(query)...)
 
-	// 6. Clipboard history (clip/cb prefix)
+	// 13. Clipboard history (clip/cb prefix)
 	currentResults = append(currentResults, modules.ClipboardSearch(query)...)
 
-	// 7. Web shortcuts (g, gh, etc.)
+	// 14. Web shortcuts (g, gh, etc.)
 	currentResults = append(currentResults, modules.WebSearch(query)...)
 
-	// 8. System commands
+	// 15. System commands
 	currentResults = append(currentResults, modules.SystemSearch(query)...)
 
-	// 9. Spotify/music control (sp prefix)
+	// 16. Spotify/music control (sp prefix)
 	currentResults = append(currentResults, modules.SpotifySearch(query)...)
 
-	// 10. Local music search (m prefix)
+	// 17. Local music search (m prefix)
 	currentResults = append(currentResults, modules.MusicSearch(query)...)
 
-	// 11. File search (explicit f prefix)
+	// 18. File buffer actions
+	currentResults = append(currentResults, modules.FileBufferSearch(query)...)
+
+	// 19. File search (explicit f prefix)
 	currentResults = append(currentResults, modules.FileSearch(query)...)
 
-	// 12. Apps (limit search for short queries)
+	// 20. Apps (limit search for short queries)
 	var appResults []apps.App
 	if len(query) <= 2 {
 		appResults = apps.QuickSearch(allApps, query)
@@ -333,6 +391,26 @@ func updateResults(query string) {
 	}
 
 	setResults(currentResults)
+}
+
+func showSelectedFileActions() {
+	if inSpotifyMode || listBox == nil {
+		return
+	}
+	selected := listBox.SelectedRow()
+	if selected == nil {
+		return
+	}
+	idx := selected.Index()
+	if idx < 0 || idx >= len(currentResults) {
+		return
+	}
+	path := modules.GetFilePath(currentResults[idx])
+	if path == "" {
+		return
+	}
+	inActionMode = true
+	setResults(modules.FileActions(path))
 }
 
 func clearResultRows() {
@@ -693,10 +771,45 @@ func executeSelected() {
 	}
 
 	r := currentResults[idx]
+	if r.NavigateQuery != "" {
+		searchEntry.SetText(r.NavigateQuery)
+		searchEntry.SetPosition(-1)
+		return
+	}
+	if r.Confirm {
+		setResults([]modules.Result{confirmResult(r)})
+		return
+	}
 	if r.Action != nil {
 		r.Action()
 	}
+	if r.KeepOpen {
+		if inActionMode {
+			inActionMode = false
+			updateResults(searchEntry.Text())
+		}
+		return
+	}
 	gtk.MainQuit()
+}
+
+func confirmResult(r modules.Result) modules.Result {
+	deadline := time.Now().Add(5 * time.Second)
+	return modules.Result{
+		Type:    r.Type,
+		Title:   "Confirm within 5s: " + r.Title,
+		Desc:    "Press Enter again - " + r.Desc,
+		Icon:    "dialog-warning",
+		Preview: "Dangerous action\n\n" + r.Title + "\n" + r.Desc + "\n\nPress Enter again within 5 seconds.",
+		Action: func() {
+			if time.Now().After(deadline) {
+				return
+			}
+			if r.Action != nil {
+				r.Action()
+			}
+		},
+	}
 }
 
 func loadCSS() {
@@ -963,5 +1076,71 @@ func refreshSpotifyInfo() {
 		if pb, err := gdkpixbuf.NewPixbufFromFileAtSize(info.ArtPath, 150, 150); err == nil {
 			spotifyArtBig.SetFromPixbuf(pb)
 		}
+	}
+}
+
+func showLargeType(text string) {
+	window := gtk.NewWindow(gtk.WindowToplevel)
+	window.SetTitle("Spark Large Type")
+	window.SetDecorated(false)
+	window.Fullscreen()
+
+	label := gtk.NewLabel(text)
+	label.SetName("large-type-label")
+	label.SetLineWrap(true)
+	label.SetLineWrapMode(pango.WrapWordChar)
+	label.SetJustify(gtk.JustifyCenter)
+	label.SetXAlign(0.5)
+	label.SetYAlign(0.5)
+
+	box := gtk.NewBox(gtk.OrientationVertical, 0)
+	box.SetName("large-type-window")
+	box.SetHAlign(gtk.AlignFill)
+	box.SetVAlign(gtk.AlignFill)
+	box.SetMarginStart(60)
+	box.SetMarginEnd(60)
+	box.SetMarginTop(60)
+	box.SetMarginBottom(60)
+	box.PackStart(label, true, true, 0)
+	window.Add(box)
+
+	css := gtk.NewCSSProvider()
+	css.LoadFromData(`
+		#large-type-window {
+			background: rgba(0, 0, 0, 0.92);
+		}
+		#large-type-label {
+			color: white;
+			font-size: ` + largeTypeFontSize(text) + `px;
+			font-weight: bold;
+		}
+	`)
+	screen := gdk.ScreenGetDefault()
+	gtk.StyleContextAddProviderForScreen(screen, css, uint(gtk.STYLE_PROVIDER_PRIORITY_APPLICATION))
+
+	window.Connect("key-press-event", func(_ *gtk.Window, _ *gdk.Event) bool {
+		gtk.MainQuit()
+		return true
+	})
+	window.Connect("button-press-event", func() bool {
+		gtk.MainQuit()
+		return true
+	})
+	window.Connect("destroy", func() {
+		gtk.MainQuit()
+	})
+	window.ShowAll()
+}
+
+func largeTypeFontSize(text string) string {
+	switch {
+	case len(text) > 120:
+		return "38"
+	case len(text) > 80:
+		return "48"
+	case len(text) > 40:
+		return "64"
+	default:
+		return "96"
 	}
 }

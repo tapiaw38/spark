@@ -1,9 +1,11 @@
 package modules
 
 import (
+	"archive/zip"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -46,8 +48,11 @@ func GetPreviewImage(r Result) string {
 
 // GetFilePath returns the local path represented by a file result.
 func GetFilePath(r Result) string {
-	if r.Type != "file" {
+	if r.Type != "file" && r.Type != "directory" {
 		return ""
+	}
+	if r.Type == "directory" && strings.HasPrefix(r.NavigateQuery, "nav ") {
+		return expandHome(strings.TrimSpace(strings.TrimPrefix(r.NavigateQuery, "nav ")))
 	}
 	return filepath.Join(expandHome(r.Desc), r.Title)
 }
@@ -65,6 +70,8 @@ func previewFile(name, dir string) string {
 		return previewTextFile(path)
 	case ".pdf":
 		return previewPDF(path)
+	case ".docx", ".odt":
+		return previewOfficeText(path)
 	case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg":
 		return "[Image: " + name + "]"
 	case ".mp3", ".wav", ".flac", ".ogg":
@@ -78,6 +85,51 @@ func previewFile(name, dir string) string {
 		}
 		return formatSize(info.Size())
 	}
+}
+
+func previewOfficeText(path string) string {
+	reader, err := zip.OpenReader(path)
+	if err != nil {
+		return "[Document file]"
+	}
+	defer reader.Close()
+
+	target := "word/document.xml"
+	if strings.EqualFold(filepath.Ext(path), ".odt") {
+		target = "content.xml"
+	}
+	for _, file := range reader.File {
+		if file.Name != target {
+			continue
+		}
+		rc, err := file.Open()
+		if err != nil {
+			return "[Document file]"
+		}
+		defer rc.Close()
+		data := make([]byte, 8192)
+		n, _ := rc.Read(data)
+		text := stripXMLTags(string(data[:n]))
+		if len(text) > 300 {
+			text = text[:300] + "..."
+		}
+		if strings.TrimSpace(text) == "" {
+			return "[Document file]"
+		}
+		return text
+	}
+	return "[Document file]"
+}
+
+func stripXMLTags(s string) string {
+	s = strings.ReplaceAll(s, "</w:p>", "\n")
+	s = strings.ReplaceAll(s, "</text:p>", "\n")
+	re := regexp.MustCompile(`<[^>]+>`)
+	s = re.ReplaceAllString(s, " ")
+	s = strings.ReplaceAll(s, "&amp;", "&")
+	s = strings.ReplaceAll(s, "&lt;", "<")
+	s = strings.ReplaceAll(s, "&gt;", ">")
+	return strings.Join(strings.Fields(s), " ")
 }
 
 func expandHome(path string) string {
