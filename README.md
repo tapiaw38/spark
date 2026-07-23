@@ -42,7 +42,7 @@ spark/
 │       ├── web.go          # Web shortcuts (g, yt, gh, etc.)
 │       ├── system.go       # System commands (lock, shutdown, etc.)
 │       ├── shell.go        # Shell execution (> command)
-│       ├── files.go        # File search (f: prefix)
+│       ├── files.go        # File search (f prefix)
 │       ├── clipboard.go    # Clipboard history (clip/cb prefix)
 │       ├── snippets.go     # Text expansion (;keyword)
 │       ├── dictionary.go   # Word definitions (define/def)
@@ -58,7 +58,7 @@ spark/
 | (none) | App search | `firefox` |
 | `>` | Shell command | `> htop` |
 | `;` | Snippet | `;email` |
-| `f:` | File search | `f:readme` |
+| `f` | File search | `f readme` |
 | `clip` | Clipboard | `clip` |
 | `define` | Dictionary | `define word` |
 | `sp` | Spotify/Music | `sp` |

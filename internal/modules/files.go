@@ -16,25 +16,14 @@ var (
 	fileCacheTime time.Time
 )
 
-// FileSearch finds files matching query using fd or find
-// ponytail: requires "f:" prefix to avoid slow search on every keystroke
+// FileSearch finds files matching query using fd or find.
+// Requires "f " prefix to avoid slow search on every keystroke.
 func FileSearch(query string) []Result {
-	// Require explicit prefix to trigger file search
-	if !strings.HasPrefix(strings.ToLower(query), "f:") &&
-		!strings.HasPrefix(strings.ToLower(query), "file:") {
+	if !strings.HasPrefix(strings.ToLower(query), "f ") {
 		return nil
 	}
 
-	// Extract search term
-	term := query
-	if strings.HasPrefix(strings.ToLower(query), "file:") {
-		term = strings.TrimPrefix(query, "file:")
-		term = strings.TrimPrefix(term, "File:")
-	} else {
-		term = strings.TrimPrefix(query, "f:")
-		term = strings.TrimPrefix(term, "F:")
-	}
-	term = strings.TrimSpace(term)
+	term := strings.TrimSpace(query[2:])
 
 	if len(term) < 2 {
 		return nil

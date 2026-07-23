@@ -284,7 +284,7 @@ func updateResults(query string) {
 	// 9. Spotify/music control (sp prefix)
 	currentResults = append(currentResults, modules.SpotifySearch(query)...)
 
-	// 10. File search (explicit f: prefix)
+	// 10. File search (explicit f prefix)
 	currentResults = append(currentResults, modules.FileSearch(query)...)
 
 	// 11. Apps (limit search for short queries)
