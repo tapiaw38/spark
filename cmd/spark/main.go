@@ -22,19 +22,20 @@ import (
 )
 
 var (
-	allApps        []apps.App
-	currentResults []modules.Result
-	listBox        *gtk.ListBox
-	resultsScroll  *gtk.ScrolledWindow
-	previewBox     *gtk.Box
-	previewImage   *gtk.Image
-	previewLabel   *gtk.Label
-	searchMu       sync.Mutex
-	searchVersion  uint64
-	previewVersion uint64
-	debounceTimer  *time.Timer
-	iconCache      = make(map[string]*gdkpixbuf.Pixbuf)
-	iconCacheMu    sync.RWMutex
+	allApps         []apps.App
+	currentResults  []modules.Result
+	listBox         *gtk.ListBox
+	resultsScroll   *gtk.ScrolledWindow
+	previewBox      *gtk.Box
+	previewImage    *gtk.Image
+	previewLabel    *gtk.Label
+	searchMu        sync.Mutex
+	searchVersion   uint64
+	previewVersion  uint64
+	quickLookActive bool
+	debounceTimer   *time.Timer
+	iconCache       = make(map[string]*gdkpixbuf.Pixbuf)
+	iconCacheMu     sync.RWMutex
 
 	// Spotify view widgets
 	spotifyView     *gtk.Box
@@ -157,7 +158,11 @@ func main() {
 
 	// Update preview on selection change
 	listBox.Connect("row-selected", func(_ *gtk.ListBox, row *gtk.ListBoxRow) {
-		updatePreview(row)
+		if quickLookActive {
+			updatePreview(row)
+		} else {
+			hidePreview()
+		}
 	})
 
 	// Search on typing with debounce
@@ -198,6 +203,14 @@ func main() {
 			return true
 		case gdk.KEY_Return:
 			executeSelected()
+			return true
+		case gdk.KEY_Shift_L, gdk.KEY_Shift_R:
+			quickLookActive = !quickLookActive
+			if quickLookActive {
+				updatePreview(listBox.SelectedRow())
+			} else {
+				hidePreview()
+			}
 			return true
 		}
 		return false
@@ -269,13 +282,16 @@ func updateResults(query string) {
 	// 3. Dictionary (define/def prefix)
 	currentResults = append(currentResults, modules.DictionarySearch(query)...)
 
-	// 4. Calculator
+	// 4. Spelling (spell/spelling prefix)
+	currentResults = append(currentResults, modules.SpellSearch(query)...)
+
+	// 5. Calculator
 	currentResults = append(currentResults, modules.CalcSearch(query)...)
 
-	// 5. Clipboard history (clip/cb prefix)
+	// 6. Clipboard history (clip/cb prefix)
 	currentResults = append(currentResults, modules.ClipboardSearch(query)...)
 
-	// 6. Web shortcuts (g, gh, etc.)
+	// 7. Web shortcuts (g, gh, etc.)
 	currentResults = append(currentResults, modules.WebSearch(query)...)
 
 	// 8. System commands
@@ -284,10 +300,13 @@ func updateResults(query string) {
 	// 9. Spotify/music control (sp prefix)
 	currentResults = append(currentResults, modules.SpotifySearch(query)...)
 
-	// 10. File search (explicit f prefix)
+	// 10. Local music search (m prefix)
+	currentResults = append(currentResults, modules.MusicSearch(query)...)
+
+	// 11. File search (explicit f prefix)
 	currentResults = append(currentResults, modules.FileSearch(query)...)
 
-	// 11. Apps (limit search for short queries)
+	// 12. Apps (limit search for short queries)
 	var appResults []apps.App
 	if len(query) <= 2 {
 		appResults = apps.QuickSearch(allApps, query)

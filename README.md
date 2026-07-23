@@ -46,7 +46,9 @@ spark/
 │       ├── clipboard.go    # Clipboard history (clip/cb prefix)
 │       ├── snippets.go     # Text expansion (;keyword)
 │       ├── dictionary.go   # Word definitions (define/def)
+│       ├── spell.go        # Spelling suggestions (spell prefix)
 │       ├── preview.go      # Preview pane content
+│       ├── music.go        # Local music search (m prefix)
 │       ├── youtube.go      # YouTube video search + thumbnails (yt prefix)
 │       └── spotify.go      # Music control (sp prefix)
 ```
@@ -61,7 +63,9 @@ spark/
 | `f` | File search | `f readme` |
 | `clip` | Clipboard | `clip` |
 | `define` | Dictionary | `define word` |
+| `spell` | Spelling | `spell recieve` |
 | `sp` | Spotify/Music | `sp` |
+| `m` | Local music | `m song` |
 | `g` | Google search | `g query` |
 | `yt` | YouTube videos | `yt video` |
 | `gh` | GitHub | `gh repo` |
@@ -128,7 +132,7 @@ Uses `playerctl` for MPRIS control.
 
 System packages (Arch):
 ```bash
-pacman -S gtk3 gtk-layer-shell playerctl yt-dlp
+pacman -S gtk3 gtk-layer-shell playerctl yt-dlp aspell hunspell
 ```
 
 Go modules:
