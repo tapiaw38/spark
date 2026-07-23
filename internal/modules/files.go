@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,14 +20,17 @@ var (
 // FileSearch finds files matching query using fd or find.
 // Requires "f " prefix to avoid slow search on every keystroke.
 func FileSearch(query string) []Result {
-	if !strings.HasPrefix(strings.ToLower(query), "f ") {
+	return FileSearchContext(context.Background(), query)
+}
+
+func FileSearchContext(ctx context.Context, query string) []Result {
+	term, ok := fileSearchTerm(query)
+	if !ok {
 		return nil
 	}
 
-	term := strings.TrimSpace(query[2:])
-
-	if len(term) < 2 {
-		return nil
+	if len(term) < 3 {
+		return FileLoading(query)
 	}
 
 	// Check cache (valid for 5 seconds)
@@ -39,7 +43,7 @@ func FileSearch(query string) []Result {
 	fileCacheMu.Unlock()
 
 	// Run search
-	results := doFileSearch(term)
+	results := doFileSearch(ctx, term)
 
 	// Update cache
 	fileCacheMu.Lock()
@@ -51,26 +55,67 @@ func FileSearch(query string) []Result {
 	return results
 }
 
-func doFileSearch(term string) []Result {
+func IsFileQueryReady(query string) bool {
+	term, ok := fileSearchTerm(query)
+	return ok && len(term) >= 3
+}
+
+func IsFileQuery(query string) bool {
+	_, ok := fileSearchTerm(query)
+	return ok
+}
+
+func FileLoading(query string) []Result {
+	term, ok := fileSearchTerm(query)
+	if !ok {
+		return nil
+	}
+	if len(term) < 3 {
+		return []Result{{
+			Type:   "file",
+			Title:  "Find Files",
+			Desc:   "Type f <name>, for example f pdf",
+			Icon:   "system-search",
+			Action: func() {},
+		}}
+	}
+	return []Result{{
+		Type:   "file",
+		Title:  "Searching files...",
+		Desc:   term,
+		Icon:   "system-search",
+		Action: func() {},
+	}}
+}
+
+func fileSearchTerm(query string) (string, bool) {
+	q := strings.TrimSpace(query)
+	lower := strings.ToLower(q)
+	switch {
+	case lower == "f" || lower == "file":
+		return "", true
+	case strings.HasPrefix(lower, "f "):
+		return strings.TrimSpace(q[2:]), true
+	case strings.HasPrefix(lower, "file "):
+		return strings.TrimSpace(q[len("file "):]), true
+	default:
+		return "", false
+	}
+}
+
+func doFileSearch(ctx context.Context, term string) []Result {
+	ctx, cancel := context.WithTimeout(ctx, 900*time.Millisecond)
+	defer cancel()
+
 	var cmd *exec.Cmd
 	if _, err := exec.LookPath("fd"); err == nil {
-		cmd = exec.Command("fd", "--max-results", "50", "--type", "f", term, os.Getenv("HOME"))
+		cmd = exec.CommandContext(ctx, "fd", "--max-results", "50", "--type", "f", term, os.Getenv("HOME"))
 	} else {
-		cmd = exec.Command("find", os.Getenv("HOME"), "-maxdepth", "4", "-type", "f", "-iname", "*"+term+"*")
+		cmd = exec.CommandContext(ctx, "find", os.Getenv("HOME"), "-maxdepth", "4", "-type", "f", "-iname", "*"+term+"*")
 	}
 
-	// Timeout after 500ms
-	done := make(chan []byte, 1)
-	go func() {
-		out, _ := cmd.Output()
-		done <- out
-	}()
-
-	var output []byte
-	select {
-	case output = <-done:
-	case <-time.After(500 * time.Millisecond):
-		cmd.Process.Kill()
+	output, err := cmd.Output()
+	if err != nil {
 		return nil
 	}
 

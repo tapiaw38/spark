@@ -55,7 +55,31 @@ func RecentSearch(query string) []Result {
 }
 
 func recentFiles(filter, appFilter string) []string {
-	path := filepath.Join(os.Getenv("HOME"), ".local/share/recently-used.xbel")
+	var results []string
+	seen := make(map[string]bool)
+	for _, path := range []string{
+		filepath.Join(os.Getenv("HOME"), ".local/share/recently-used.xbel"),
+		filepath.Join(os.Getenv("HOME"), ".local/share/RecentDocuments"),
+		filepath.Join(os.Getenv("HOME"), ".local/share/kactivitymanagerd/resources/database"),
+	} {
+		for _, recent := range recentFilesFromPath(path, filter, appFilter) {
+			if seen[recent] {
+				continue
+			}
+			seen[recent] = true
+			results = append(results, recent)
+			if len(results) >= 50 {
+				return results
+			}
+		}
+	}
+	return results
+}
+
+func recentFilesFromPath(path, filter, appFilter string) []string {
+	if strings.HasSuffix(path, "RecentDocuments") {
+		return kdeRecentDocuments(path, filter)
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		return nil
@@ -101,6 +125,45 @@ func recentFiles(filter, appFilter string) []string {
 			results = append(results, localPath)
 			if len(results) >= 50 {
 				return results
+			}
+		}
+	}
+	return results
+}
+
+func kdeRecentDocuments(dir, filter string) []string {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	var results []string
+	lowerFilter := strings.ToLower(filter)
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".desktop") {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+		if err != nil {
+			continue
+		}
+		for _, line := range strings.Split(string(data), "\n") {
+			if !strings.HasPrefix(line, "URL=") && !strings.HasPrefix(line, "X-KDE-LastOpenedWith") {
+				continue
+			}
+			value := strings.TrimPrefix(line, "URL=")
+			if !strings.HasPrefix(value, "file://") {
+				continue
+			}
+			u, err := url.Parse(value)
+			if err != nil {
+				continue
+			}
+			localPath := u.Path
+			if lowerFilter != "" && !strings.Contains(strings.ToLower(localPath), lowerFilter) {
+				continue
+			}
+			if _, err := os.Stat(localPath); err == nil {
+				results = append(results, localPath)
 			}
 		}
 	}

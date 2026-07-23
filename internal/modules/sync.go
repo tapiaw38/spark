@@ -82,6 +82,40 @@ func SyncSearch(query string) []Result {
 				copyText("Sync these Spark paths:\n" + paths)
 			},
 		},
+		{
+			Type:  "sync",
+			Title: "Copy Git Bootstrap",
+			Desc:  "~/.config/spark",
+			Icon:  "git",
+			Action: func() {
+				copyText("cd ~/.config/spark\ngit init\ngit add .\ngit commit -m 'sync spark settings'\n")
+			},
+		},
+		{
+			Type:  "sync",
+			Title: "Open Syncthing",
+			Desc:  "http://127.0.0.1:8384",
+			Icon:  "emblem-synchronizing",
+			Action: func() {
+				exec.Command("xdg-open", "http://127.0.0.1:8384").Start()
+			},
+		},
+		{
+			Type:  "sync",
+			Title: "Create Sync Profile",
+			Desc:  filepath.Join(configDir, "sync-profile.txt"),
+			Icon:  "document-save",
+			Action: func() {
+				path := filepath.Join(configDir, "sync-profile.txt")
+				os.MkdirAll(configDir, 0755)
+				content := "Spark sync paths:\n" + paths + "\n\nUse Syncthing/Git/Dropbox to sync these folders.\n"
+				if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+					SetStatus(false, "Sync profile failed: "+err.Error())
+				} else {
+					SetStatus(true, "Sync profile created: "+path)
+				}
+			},
+		},
 	}
 }
 

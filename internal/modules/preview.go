@@ -40,6 +40,9 @@ func GetPreviewImage(r Result) string {
 	}
 
 	if !isImageFile(r.Title) {
+		if strings.EqualFold(filepath.Ext(r.Title), ".pdf") {
+			return previewPDFImage(GetFilePath(r))
+		}
 		return ""
 	}
 
@@ -190,6 +193,26 @@ func previewPDF(path string) string {
 		return content[:200] + "..."
 	}
 	return content
+}
+
+func previewPDFImage(path string) string {
+	if _, err := exec.LookPath("pdftoppm"); err != nil {
+		return ""
+	}
+	cacheDir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "pdf-preview")
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		return ""
+	}
+	base := filepath.Join(cacheDir, simpleHash(path))
+	png := base + "-1.png"
+	if _, err := os.Stat(png); err == nil {
+		return png
+	}
+	exec.Command("pdftoppm", "-png", "-singlefile", "-f", "1", "-l", "1", "-scale-to", "360", path, base).Run()
+	if _, err := os.Stat(png); err == nil {
+		return png
+	}
+	return ""
 }
 
 func previewAudio(path string) string {

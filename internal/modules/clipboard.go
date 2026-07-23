@@ -86,6 +86,7 @@ func ClipboardSearch(query string) []Result {
 			Desc:         desc,
 			Icon:         icon,
 			PreviewImage: previewImage,
+			Data:         clipID,
 			Action: func() {
 				// Decode and copy to clipboard
 				decode := exec.Command("cliphist", "decode")
@@ -119,6 +120,19 @@ func ClipboardSearch(query string) []Result {
 	return results
 }
 
+func GetClipboardPreviewImage(r Result) string {
+	if r.Type != "clipboard" {
+		return ""
+	}
+	if r.PreviewImage != "" {
+		return expandHome(r.PreviewImage)
+	}
+	if r.Data == "" || !clipboardLooksImage(r.Title) {
+		return ""
+	}
+	return cacheClipboardImage(r.Data)
+}
+
 func clipboardPreviewImage(preview string) string {
 	if path := clipboardImagePath(preview); path != "" {
 		return path
@@ -148,6 +162,43 @@ func clipboardImagePath(preview string) string {
 		}
 	}
 	return ""
+}
+
+func clipboardLooksImage(preview string) bool {
+	lower := strings.ToLower(preview)
+	return strings.Contains(lower, "image/") || strings.Contains(lower, "png") || strings.Contains(lower, "jpeg") || strings.Contains(lower, "jpg") || strings.Contains(lower, "webp")
+}
+
+func cacheClipboardImage(id string) string {
+	decode := exec.Command("cliphist", "decode")
+	decode.Stdin = strings.NewReader(id)
+	data, err := decode.Output()
+	if err != nil || len(data) < 12 {
+		return ""
+	}
+	ext := ""
+	switch {
+	case bytes.HasPrefix(data, []byte{0x89, 'P', 'N', 'G'}):
+		ext = ".png"
+	case bytes.HasPrefix(data, []byte{0xff, 0xd8, 0xff}):
+		ext = ".jpg"
+	case bytes.HasPrefix(data, []byte("RIFF")) && len(data) > 12 && string(data[8:12]) == "WEBP":
+		ext = ".webp"
+	default:
+		return ""
+	}
+	dir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "clipboard")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return ""
+	}
+	path := filepath.Join(dir, simpleHash(id)+ext)
+	if _, err := os.Stat(path); err == nil {
+		return path
+	}
+	if os.WriteFile(path, data, 0600) != nil {
+		return ""
+	}
+	return path
 }
 
 func colorSwatch(color string) string {

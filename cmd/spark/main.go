@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -33,6 +35,8 @@ var (
 	searchMu        sync.Mutex
 	searchVersion   uint64
 	previewVersion  uint64
+	fileSearchMu    sync.Mutex
+	fileSearchStop  context.CancelFunc
 	quickLookActive bool
 	inActionMode    bool
 	debounceTimer   *time.Timer
@@ -90,6 +94,12 @@ func main() {
 			body = os.Args[4]
 		}
 		showEmailWindow(to, subject, body)
+		gtk.Main()
+		os.Exit(0)
+	}
+	if len(os.Args) > 4 && os.Args[1] == "--file-op-window" {
+		gtk.Init()
+		showFileOpWindow(os.Args[2], os.Args[3], os.Args[4])
 		gtk.Main()
 		os.Exit(0)
 	}
@@ -317,6 +327,45 @@ func updateResults(query string) {
 		return
 	}
 
+	if modules.IsFileQuery(query) {
+		setResults(modules.FileLoading(query))
+		fileSearchMu.Lock()
+		if fileSearchStop != nil {
+			fileSearchStop()
+			fileSearchStop = nil
+		}
+		ctx, cancel := context.WithCancel(context.Background())
+		fileSearchStop = cancel
+		fileSearchMu.Unlock()
+		if !modules.IsFileQueryReady(query) {
+			return
+		}
+		go func(q string, v uint64) {
+			time.Sleep(250 * time.Millisecond)
+			if atomic.LoadUint64(&searchVersion) != v {
+				cancel()
+				return
+			}
+			results := modules.FileSearchContext(ctx, q)
+			glib.IdleAdd(func() {
+				if atomic.LoadUint64(&searchVersion) != v {
+					return
+				}
+				fileSearchMu.Lock()
+				fileSearchStop = nil
+				fileSearchMu.Unlock()
+				setResults(results)
+			})
+		}(query, version)
+		return
+	}
+	fileSearchMu.Lock()
+	if fileSearchStop != nil {
+		fileSearchStop()
+		fileSearchStop = nil
+	}
+	fileSearchMu.Unlock()
+
 	if results := modules.NavigationSearch(query); results != nil {
 		setResults(results)
 		return
@@ -499,6 +548,51 @@ func updatePreview(row *gtk.ListBoxRow) {
 
 	r := currentResults[idx]
 
+	if r.Type == "file" {
+		version := atomic.AddUint64(&previewVersion, 1)
+		previewImage.Hide()
+		previewImage.Clear()
+		previewLabel.SetText("Loading preview...")
+		previewLabel.Show()
+		previewBox.Show()
+		go func(res modules.Result, v uint64) {
+			imagePath := modules.GetPreviewImage(res)
+			preview := ""
+			if imagePath == "" {
+				preview = modules.GetPreview(res)
+			}
+			glib.IdleAdd(func() {
+				if atomic.LoadUint64(&previewVersion) != v {
+					return
+				}
+				if imagePath != "" {
+					if pb, err := gdkpixbuf.NewPixbufFromFileAtScale(imagePath, 220, 180, true); err == nil {
+						previewLabel.Hide()
+						previewLabel.SetText("")
+						previewImage.SetFromPixbuf(pb)
+						previewImage.Show()
+						previewBox.Show()
+						return
+					}
+				}
+				if preview == "" {
+					previewLabel.Hide()
+					previewLabel.SetText("")
+					previewImage.Hide()
+					previewImage.Clear()
+					previewBox.Hide()
+					return
+				}
+				previewImage.Hide()
+				previewImage.Clear()
+				previewLabel.SetText(preview)
+				previewLabel.Show()
+				previewBox.Show()
+			})
+		}(r, version)
+		return
+	}
+
 	imagePath := modules.GetPreviewImage(r)
 	if imagePath != "" {
 		if pb, err := gdkpixbuf.NewPixbufFromFileAtScale(imagePath, 220, 180, true); err == nil {
@@ -536,6 +630,34 @@ func updatePreview(row *gtk.ListBoxRow) {
 				}
 			})
 		}(r.PreviewImageURL, version)
+		return
+	}
+
+	if r.Type == "clipboard" && r.Data != "" {
+		version := atomic.AddUint64(&previewVersion, 1)
+		previewImage.Hide()
+		previewImage.Clear()
+		previewLabel.SetText(r.Title)
+		previewLabel.Show()
+		previewBox.Show()
+		go func(res modules.Result, v uint64) {
+			path := modules.GetClipboardPreviewImage(res)
+			if path == "" {
+				return
+			}
+			glib.IdleAdd(func() {
+				if atomic.LoadUint64(&previewVersion) != v {
+					return
+				}
+				if pb, err := gdkpixbuf.NewPixbufFromFileAtScale(path, 220, 180, true); err == nil {
+					previewLabel.Hide()
+					previewLabel.SetText("")
+					previewImage.SetFromPixbuf(pb)
+					previewImage.Show()
+					previewBox.Show()
+				}
+			})
+		}(r, version)
 		return
 	}
 
@@ -1297,4 +1419,74 @@ func showEmailWindow(toValue, subjectValue, bodyValue string) {
 	window.Connect("destroy", func() { gtk.MainQuit() })
 	window.ShowAll()
 	toEntry.GrabFocus()
+}
+
+func showFileOpWindow(op, sourceValue, targetValue string) {
+	window := gtk.NewWindow(gtk.WindowToplevel)
+	window.SetTitle("Spark File Operation")
+	window.SetDefaultSize(620, 220)
+
+	box := gtk.NewBox(gtk.OrientationVertical, 10)
+	box.SetMarginStart(16)
+	box.SetMarginEnd(16)
+	box.SetMarginTop(16)
+	box.SetMarginBottom(16)
+
+	crumb := gtk.NewLabel(fileOpBreadcrumb(sourceValue))
+	crumb.SetXAlign(0)
+
+	opEntry := gtk.NewEntry()
+	opEntry.SetPlaceholderText("Operation")
+	opEntry.SetText(op)
+	sourceEntry := gtk.NewEntry()
+	sourceEntry.SetPlaceholderText("Source")
+	sourceEntry.SetText(sourceValue)
+	targetEntry := gtk.NewEntry()
+	targetEntry.SetPlaceholderText("Target name or folder")
+	targetEntry.SetText(targetValue)
+
+	buttons := gtk.NewBox(gtk.OrientationHorizontal, 8)
+	homeBtn := gtk.NewButtonWithLabel("Home")
+	homeBtn.Connect("clicked", func() {
+		targetEntry.SetText(os.Getenv("HOME"))
+	})
+	downloadsBtn := gtk.NewButtonWithLabel("Downloads")
+	downloadsBtn.Connect("clicked", func() {
+		targetEntry.SetText(filepath.Join(os.Getenv("HOME"), "Downloads"))
+	})
+	cancelBtn := gtk.NewButtonWithLabel("Cancel")
+	cancelBtn.Connect("clicked", func() { gtk.MainQuit() })
+	runBtn := gtk.NewButtonWithLabel("Run")
+	runBtn.Connect("clicked", func() {
+		modules.RunFileOperation(opEntry.Text(), sourceEntry.Text(), targetEntry.Text())
+		gtk.MainQuit()
+	})
+
+	buttons.PackStart(homeBtn, false, false, 0)
+	buttons.PackStart(downloadsBtn, false, false, 0)
+	buttons.PackEnd(runBtn, false, false, 0)
+	buttons.PackEnd(cancelBtn, false, false, 0)
+
+	box.PackStart(crumb, false, false, 0)
+	box.PackStart(opEntry, false, false, 0)
+	box.PackStart(sourceEntry, false, false, 0)
+	box.PackStart(targetEntry, false, false, 0)
+	box.PackStart(buttons, false, false, 0)
+	window.Add(box)
+	window.Connect("destroy", func() { gtk.MainQuit() })
+	window.ShowAll()
+	targetEntry.GrabFocus()
+}
+
+func fileOpBreadcrumb(path string) string {
+	dir := filepath.Dir(path)
+	home := os.Getenv("HOME")
+	if strings.HasPrefix(dir, home) {
+		dir = "~" + strings.TrimPrefix(dir, home)
+	}
+	parts := strings.Split(filepath.Clean(dir), string(os.PathSeparator))
+	if len(parts) > 4 {
+		parts = append([]string{"..."}, parts[len(parts)-3:]...)
+	}
+	return strings.Join(parts, " / ")
 }

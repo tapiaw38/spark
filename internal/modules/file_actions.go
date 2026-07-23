@@ -52,31 +52,31 @@ func FileActions(path string) []Result {
 			},
 		},
 		{
-			Type:          "file-action",
-			Title:         "Rename...",
-			Desc:          "rename " + path + " | " + filepath.Base(path),
-			Icon:          "edit-rename",
-			KeepOpen:      true,
-			NavigateQuery: "rename " + path + " | " + filepath.Base(path),
-			Action:        func() {},
+			Type:  "file-action",
+			Title: "Rename...",
+			Desc:  "Edit name in file operation window",
+			Icon:  "edit-rename",
+			Action: func() {
+				openFileOpWindow("rename", path, filepath.Base(path))
+			},
 		},
 		{
-			Type:          "file-action",
-			Title:         "Copy To...",
-			Desc:          "pick copy " + path + " | " + filepath.Dir(path),
-			Icon:          "edit-copy",
-			KeepOpen:      true,
-			NavigateQuery: "pick copy " + path + " | " + filepath.Dir(path),
-			Action:        func() {},
+			Type:  "file-action",
+			Title: "Copy To...",
+			Desc:  "Choose destination in file operation window",
+			Icon:  "edit-copy",
+			Action: func() {
+				openFileOpWindow("copy", path, filepath.Dir(path))
+			},
 		},
 		{
-			Type:          "file-action",
-			Title:         "Move To...",
-			Desc:          "pick move " + path + " | " + filepath.Dir(path),
-			Icon:          "go-jump",
-			KeepOpen:      true,
-			NavigateQuery: "pick move " + path + " | " + filepath.Dir(path),
-			Action:        func() {},
+			Type:  "file-action",
+			Title: "Move To...",
+			Desc:  "Choose destination in file operation window",
+			Icon:  "go-jump",
+			Action: func() {
+				openFileOpWindow("move", path, filepath.Dir(path))
+			},
 		},
 		{
 			Type:     "file-action",
@@ -272,6 +272,12 @@ func moveToTrash(path string) {
 		return
 	}
 	exec.Command("kioclient6", "move", path, "trash:/").Run()
+}
+
+func openFileOpWindow(op, source, target string) {
+	if exe, err := os.Executable(); err == nil {
+		exec.Command(exe, "--file-op-window", op, source, target).Start()
+	}
 }
 
 func bufferSummary(count int) string {

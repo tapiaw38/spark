@@ -72,6 +72,7 @@ spark/
 | `;` | Snippet | `;email` |
 | `f` | File search | `f readme` |
 | `Tab` | File actions | select file, press `Tab` |
+| file op window | Visual file ops | Tab -> Rename/Copy/Move |
 | `nav` | Folder navigation | `nav ~/Downloads` |
 | `pick` | Destination picker | `pick copy source | ~/Downloads` |
 | `rename` | Rename file | `rename source | new-name` |
@@ -92,7 +93,8 @@ spark/
 | `define` | Dictionary | `define word` |
 | `spell` | Spelling | `spell recieve` |
 | `sp` | Spotify/Music | `sp` |
-| `m` | Local music | `m song` |
+| `m` | Local music | `m song`, `m artist name`, `m album name` |
+| `mq` | Music queue | `mq` |
 | `g` | Google search | `g query` |
 | `yt` | YouTube videos | `yt video` |
 | `gh` | GitHub | `gh repo` |
