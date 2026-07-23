@@ -61,7 +61,35 @@ const (
 func main() {
 	if len(os.Args) > 2 && os.Args[1] == "--large-type" {
 		gtk.Init()
-		showLargeType(os.Args[2])
+		showLargeType(os.Args[2], -1)
+		gtk.Main()
+		os.Exit(0)
+	}
+	if len(os.Args) > 2 && os.Args[1] == "--large-type-all" {
+		gtk.Init()
+		showLargeTypeAll(os.Args[2])
+		gtk.Main()
+		os.Exit(0)
+	}
+	if len(os.Args) > 1 && os.Args[1] == "--stats-window" {
+		gtk.Init()
+		showStatsWindow()
+		gtk.Main()
+		os.Exit(0)
+	}
+	if len(os.Args) > 1 && os.Args[1] == "--email-window" {
+		gtk.Init()
+		to, subject, body := "", "", ""
+		if len(os.Args) > 2 {
+			to = os.Args[2]
+		}
+		if len(os.Args) > 3 {
+			subject = os.Args[3]
+		}
+		if len(os.Args) > 4 {
+			body = os.Args[4]
+		}
+		showEmailWindow(to, subject, body)
 		gtk.Main()
 		os.Exit(0)
 	}
@@ -331,40 +359,43 @@ func updateResults(query string) {
 	// 8. Settings sync helpers
 	currentResults = append(currentResults, modules.SyncSearch(query)...)
 
-	// 9. Snippets (; prefix or "snip")
+	// 9. Last action/error status
+	currentResults = append(currentResults, modules.StatusSearch(query)...)
+
+	// 10. Snippets (; prefix or "snip")
 	currentResults = append(currentResults, modules.SnippetSearch(query)...)
 
-	// 10. Dictionary (define/def prefix)
+	// 11. Dictionary (define/def prefix)
 	currentResults = append(currentResults, modules.DictionarySearch(query)...)
 
-	// 11. Spelling (spell/spelling prefix)
+	// 12. Spelling (spell/spelling prefix)
 	currentResults = append(currentResults, modules.SpellSearch(query)...)
 
-	// 12. Calculator
+	// 13. Calculator
 	currentResults = append(currentResults, modules.CalcSearch(query)...)
 
-	// 13. Clipboard history (clip/cb prefix)
+	// 14. Clipboard history (clip/cb prefix)
 	currentResults = append(currentResults, modules.ClipboardSearch(query)...)
 
-	// 14. Web shortcuts (g, gh, etc.)
+	// 15. Web shortcuts (g, gh, etc.)
 	currentResults = append(currentResults, modules.WebSearch(query)...)
 
-	// 15. System commands
+	// 16. System commands
 	currentResults = append(currentResults, modules.SystemSearch(query)...)
 
-	// 16. Spotify/music control (sp prefix)
+	// 17. Spotify/music control (sp prefix)
 	currentResults = append(currentResults, modules.SpotifySearch(query)...)
 
-	// 17. Local music search (m prefix)
+	// 18. Local music search (m prefix)
 	currentResults = append(currentResults, modules.MusicSearch(query)...)
 
-	// 18. File buffer actions
+	// 19. File buffer actions
 	currentResults = append(currentResults, modules.FileBufferSearch(query)...)
 
-	// 19. File search (explicit f prefix)
+	// 20. File search (explicit f prefix)
 	currentResults = append(currentResults, modules.FileSearch(query)...)
 
-	// 20. Apps (limit search for short queries)
+	// 21. Apps (limit search for short queries)
 	var appResults []apps.App
 	if len(query) <= 2 {
 		appResults = apps.QuickSearch(allApps, query)
@@ -777,8 +808,9 @@ func executeSelected() {
 		return
 	}
 	if r.Confirm {
-		setResults([]modules.Result{confirmResult(r)})
-		return
+		if !confirmAction(r) {
+			return
+		}
 	}
 	if r.Action != nil {
 		r.Action()
@@ -793,23 +825,13 @@ func executeSelected() {
 	gtk.MainQuit()
 }
 
-func confirmResult(r modules.Result) modules.Result {
-	deadline := time.Now().Add(5 * time.Second)
-	return modules.Result{
-		Type:    r.Type,
-		Title:   "Confirm within 5s: " + r.Title,
-		Desc:    "Press Enter again - " + r.Desc,
-		Icon:    "dialog-warning",
-		Preview: "Dangerous action\n\n" + r.Title + "\n" + r.Desc + "\n\nPress Enter again within 5 seconds.",
-		Action: func() {
-			if time.Now().After(deadline) {
-				return
-			}
-			if r.Action != nil {
-				r.Action()
-			}
-		},
-	}
+func confirmAction(r modules.Result) bool {
+	dialog := gtk.NewMessageDialog(nil, gtk.DialogModal, gtk.MessageWarning, gtk.ButtonsOKCancel)
+	dialog.SetMarkup("<b>" + r.Title + "</b>\n" + r.Desc)
+	dialog.ShowAll()
+	response := dialog.Run()
+	dialog.Destroy()
+	return gtk.ResponseType(response) == gtk.ResponseOK
 }
 
 func loadCSS() {
@@ -1079,11 +1101,26 @@ func refreshSpotifyInfo() {
 	}
 }
 
-func showLargeType(text string) {
+func showLargeTypeAll(text string) {
+	screen := gdk.ScreenGetDefault()
+	count := 1
+	if screen != nil {
+		count = screen.NMonitors()
+	}
+	for i := 0; i < count; i++ {
+		showLargeType(text, i)
+	}
+}
+
+func showLargeType(text string, monitor int) {
 	window := gtk.NewWindow(gtk.WindowToplevel)
 	window.SetTitle("Spark Large Type")
 	window.SetDecorated(false)
-	window.Fullscreen()
+	if monitor >= 0 {
+		window.FullscreenOnMonitor(gdk.ScreenGetDefault(), monitor)
+	} else {
+		window.Fullscreen()
+	}
 
 	label := gtk.NewLabel(text)
 	label.SetName("large-type-label")
@@ -1143,4 +1180,121 @@ func largeTypeFontSize(text string) string {
 	default:
 		return "96"
 	}
+}
+
+func showStatsWindow() {
+	window := gtk.NewWindow(gtk.WindowToplevel)
+	window.SetTitle("Spark Usage Stats")
+	window.SetDefaultSize(520, 420)
+
+	box := gtk.NewBox(gtk.OrientationVertical, 10)
+	box.SetMarginStart(18)
+	box.SetMarginEnd(18)
+	box.SetMarginTop(18)
+	box.SetMarginBottom(18)
+
+	counts := history.Snapshot()
+	type stat struct {
+		name  string
+		count int
+	}
+	var stats []stat
+	max := 0
+	for name, count := range counts {
+		stats = append(stats, stat{name, count})
+		if count > max {
+			max = count
+		}
+	}
+	for i := 0; i < len(stats)-1; i++ {
+		for j := i + 1; j < len(stats); j++ {
+			if stats[j].count > stats[i].count {
+				stats[i], stats[j] = stats[j], stats[i]
+			}
+		}
+	}
+	if len(stats) > 10 {
+		stats = stats[:10]
+	}
+
+	for _, s := range stats {
+		row := gtk.NewBox(gtk.OrientationHorizontal, 10)
+		name := gtk.NewLabel(s.name)
+		name.SetXAlign(0)
+		name.SetSizeRequest(160, -1)
+		bar := gtk.NewProgressBar()
+		if max > 0 {
+			bar.SetFraction(float64(s.count) / float64(max))
+		}
+		bar.SetText(stringIntLocal(s.count))
+		bar.SetShowText(true)
+		row.PackStart(name, false, false, 0)
+		row.PackStart(bar, true, true, 0)
+		box.PackStart(row, false, false, 0)
+	}
+	if len(stats) == 0 {
+		label := gtk.NewLabel("No usage stats yet")
+		box.PackStart(label, true, true, 0)
+	}
+
+	window.Add(box)
+	window.Connect("key-press-event", func(_ *gtk.Window, _ *gdk.Event) bool {
+		gtk.MainQuit()
+		return true
+	})
+	window.Connect("destroy", func() { gtk.MainQuit() })
+	window.ShowAll()
+}
+
+func stringIntLocal(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	var digits []byte
+	for n > 0 {
+		digits = append([]byte{byte('0' + n%10)}, digits...)
+		n /= 10
+	}
+	return string(digits)
+}
+
+func showEmailWindow(toValue, subjectValue, bodyValue string) {
+	window := gtk.NewWindow(gtk.WindowToplevel)
+	window.SetTitle("Spark Email")
+	window.SetDefaultSize(520, 240)
+
+	box := gtk.NewBox(gtk.OrientationVertical, 10)
+	box.SetMarginStart(16)
+	box.SetMarginEnd(16)
+	box.SetMarginTop(16)
+	box.SetMarginBottom(16)
+
+	toEntry := gtk.NewEntry()
+	toEntry.SetPlaceholderText("To")
+	toEntry.SetText(toValue)
+	subjectEntry := gtk.NewEntry()
+	subjectEntry.SetPlaceholderText("Subject")
+	subjectEntry.SetText(subjectValue)
+	bodyEntry := gtk.NewEntry()
+	bodyEntry.SetPlaceholderText("Body")
+	bodyEntry.SetText(bodyValue)
+
+	send := gtk.NewButtonWithLabel("Send")
+	send.Connect("clicked", func() {
+		to := toEntry.Text()
+		subject := subjectEntry.Text()
+		body := bodyEntry.Text()
+		link := "mailto:" + url.QueryEscape(to) + "?subject=" + url.QueryEscape(subject) + "&body=" + url.QueryEscape(body)
+		exec.Command("xdg-open", link).Start()
+		gtk.MainQuit()
+	})
+
+	box.PackStart(toEntry, false, false, 0)
+	box.PackStart(subjectEntry, false, false, 0)
+	box.PackStart(bodyEntry, false, false, 0)
+	box.PackStart(send, false, false, 0)
+	window.Add(box)
+	window.Connect("destroy", func() { gtk.MainQuit() })
+	window.ShowAll()
+	toEntry.GrabFocus()
 }

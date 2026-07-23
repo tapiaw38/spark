@@ -73,6 +73,10 @@ func ContactsSearch(query string) []Result {
 func loadContacts(filter string) []contact {
 	dirs := []string{
 		filepath.Join(os.Getenv("HOME"), ".local/share/contacts"),
+		filepath.Join(os.Getenv("HOME"), ".local/share/evolution/addressbook"),
+		filepath.Join(os.Getenv("HOME"), ".local/share/kaddressbook"),
+		filepath.Join(os.Getenv("HOME"), ".local/share/akonadi"),
+		filepath.Join(os.Getenv("HOME"), ".cache/evolution/addressbook"),
 		filepath.Join(os.Getenv("HOME"), ".contacts"),
 		filepath.Join(os.Getenv("HOME"), "Contacts"),
 	}

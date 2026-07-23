@@ -78,9 +78,11 @@ spark/
 | `copy` | Copy file | `copy source | target` |
 | `move` | Move file | `move source | target` |
 | `undo` | Undo last file operation | `undo` |
+| `status` | Last action/error | `status` |
 | `buffer` | File buffer | `buffer` |
 | `recent` | Recent documents | `recent invoice`, `recent app firefox` |
 | `large` | Large Type | `large 555-1234` |
+| `large all` | Large Type all monitors | `large all 555-1234` |
 | `help` | Help | `help` |
 | `contact` | Contacts | `contact Ada` |
 | `email` | Email | `email contact | Subject | Body` |
@@ -115,6 +117,7 @@ icon_size: 24
 margin_top: 100
 history_boost: 3
 hotkey: "SUPER,s"
+spell_language: "en"
 web_shortcuts:
   g:
     name: Google

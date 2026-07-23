@@ -21,6 +21,11 @@ func LargeTypeSearch(query string) []Result {
 			Action: func() {},
 		}}
 	}
+	allMonitors := false
+	if strings.HasPrefix(strings.ToLower(text), "all ") {
+		allMonitors = true
+		text = strings.TrimSpace(text[4:])
+	}
 	return []Result{
 		{
 			Type:  "large-type",
@@ -29,7 +34,11 @@ func LargeTypeSearch(query string) []Result {
 			Icon:  "preferences-desktop-font",
 			Action: func() {
 				if exe, err := os.Executable(); err == nil {
-					exec.Command(exe, "--large-type", text).Start()
+					args := []string{"--large-type", text}
+					if allMonitors {
+						args = []string{"--large-type-all", text}
+					}
+					exec.Command(exe, args...).Start()
 				}
 			},
 		},

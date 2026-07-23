@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/tapiaw38/spark/internal/config"
 )
 
 // SpellSearch checks spelling and suggests corrections.
@@ -12,6 +14,9 @@ func SpellSearch(query string) []Result {
 	word, lang, ok := spellTerm(query)
 	if !ok || len(word) < 2 {
 		return nil
+	}
+	if lang == "" {
+		lang = config.Current.SpellLanguage
 	}
 
 	if result := runSpellChecker(word, lang); result != nil {

@@ -1,6 +1,8 @@
 package modules
 
 import (
+	"os"
+	"os/exec"
 	"sort"
 	"strings"
 
@@ -39,13 +41,26 @@ func StatsSearch(query string) []Result {
 		return stats[i].count > stats[j].count
 	})
 
-	results := []Result{{
-		Type:   "stats",
-		Title:  "Total App Launches",
-		Desc:   stringInt(total),
-		Icon:   "utilities-system-monitor",
-		Action: func() {},
-	}}
+	results := []Result{
+		{
+			Type:  "stats",
+			Title: "Open Stats Graph",
+			Desc:  stringInt(total) + " total launches",
+			Icon:  "utilities-system-monitor",
+			Action: func() {
+				if exe, err := os.Executable(); err == nil {
+					exec.Command(exe, "--stats-window").Start()
+				}
+			},
+		},
+		{
+			Type:   "stats",
+			Title:  "Total App Launches",
+			Desc:   stringInt(total),
+			Icon:   "utilities-system-monitor",
+			Action: func() {},
+		},
+	}
 	for _, stat := range stats {
 		results = append(results, Result{
 			Type:   "stats",

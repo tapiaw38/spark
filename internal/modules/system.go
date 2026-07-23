@@ -15,6 +15,7 @@ type systemCommand struct {
 	icon     string
 	confirm  bool
 	enabled  func() bool
+	reason   string
 	action   func()
 }
 
@@ -27,12 +28,19 @@ func SystemSearch(query string) []Result {
 
 	var results []Result
 	for _, sc := range systemCommands() {
-		if sc.enabled != nil && !sc.enabled() {
-			continue
-		}
 		for _, kw := range sc.keywords {
 			if strings.Contains(kw, query) || strings.Contains(strings.ToLower(sc.name), query) {
 				cmd := sc
+				if cmd.enabled != nil && !cmd.enabled() {
+					results = append(results, Result{
+						Type:   "system",
+						Title:  cmd.name + " unavailable",
+						Desc:   cmd.reason,
+						Icon:   "dialog-warning",
+						Action: func() {},
+					})
+					break
+				}
 				results = append(results, Result{
 					Type:    "system",
 					Title:   cmd.name,
@@ -50,13 +58,13 @@ func SystemSearch(query string) []Result {
 
 func systemCommands() []systemCommand {
 	return []systemCommand{
-		{[]string{"lock", "screensaver", "screen saver"}, "Lock Screen", "Lock session", "system-lock-screen", false, hasLocker, lockScreen},
-		{[]string{"sleep", "suspend"}, "Sleep", "Suspend system", "system-suspend", true, hasSystemctl, func() { exec.Command("systemctl", "suspend").Start() }},
-		{[]string{"hibernate"}, "Hibernate", "Hibernate system", "system-suspend-hibernate", true, hasSystemctl, func() { exec.Command("systemctl", "hibernate").Start() }},
-		{[]string{"restart", "reboot"}, "Restart", "Restart system", "system-reboot", true, hasSystemctl, func() { exec.Command("systemctl", "reboot").Start() }},
-		{[]string{"shutdown", "poweroff", "power off"}, "Shutdown", "Power off system", "system-shutdown", true, hasSystemctl, func() { exec.Command("systemctl", "poweroff").Start() }},
-		{[]string{"logout", "log out", "exit session"}, "Logout", "Terminate current user session", "system-log-out", true, hasLoginctl, logout},
-		{[]string{"trash", "empty trash", "clear trash"}, "Empty Trash", "Delete files from user trash", "user-trash", true, hasTrashBackend, emptyTrash},
+		{[]string{"lock", "screensaver", "screen saver"}, "Lock Screen", "Lock session", "system-lock-screen", false, hasLocker, "Install swaylock, hyprlock, gtklock, or loginctl", lockScreen},
+		{[]string{"sleep", "suspend"}, "Sleep", "Suspend system", "system-suspend", true, hasSystemctl, "systemctl not available", func() { exec.Command("systemctl", "suspend").Start() }},
+		{[]string{"hibernate"}, "Hibernate", "Hibernate system", "system-suspend-hibernate", true, hasSystemctl, "systemctl not available", func() { exec.Command("systemctl", "hibernate").Start() }},
+		{[]string{"restart", "reboot"}, "Restart", "Restart system", "system-reboot", true, hasSystemctl, "systemctl not available", func() { exec.Command("systemctl", "reboot").Start() }},
+		{[]string{"shutdown", "poweroff", "power off"}, "Shutdown", "Power off system", "system-shutdown", true, hasSystemctl, "systemctl not available", func() { exec.Command("systemctl", "poweroff").Start() }},
+		{[]string{"logout", "log out", "exit session"}, "Logout", "Terminate current user session", "system-log-out", true, hasLoginctl, "loginctl not available", logout},
+		{[]string{"trash", "empty trash", "clear trash"}, "Empty Trash", "Delete files from user trash", "user-trash", true, hasTrashBackend, "Install gio or kioclient6", emptyTrash},
 	}
 }
 

@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 	"os/exec"
@@ -11,8 +12,10 @@ import (
 var lastFileUndo *fileUndo
 
 type fileUndo struct {
-	title  string
-	action func()
+	Title  string `json:"title"`
+	Kind   string `json:"kind"`
+	Source string `json:"source"`
+	Target string `json:"target"`
 }
 
 // FileOperationSearch runs file operations generated from file actions.
@@ -60,7 +63,8 @@ func UndoSearch(query string) []Result {
 	if q != "undo" {
 		return nil
 	}
-	if lastFileUndo == nil {
+	undo := currentFileUndo()
+	if undo == nil {
 		return []Result{{
 			Type:   "undo",
 			Title:  "Nothing to Undo",
@@ -69,16 +73,15 @@ func UndoSearch(query string) []Result {
 			Action: func() {},
 		}}
 	}
-	undo := lastFileUndo
 	return []Result{{
 		Type:    "undo",
-		Title:   "Undo: " + undo.title,
+		Title:   "Undo: " + undo.Title,
 		Desc:    "Confirm undo",
 		Icon:    "edit-undo",
 		Confirm: true,
 		Action: func() {
-			undo.action()
-			lastFileUndo = nil
+			runUndo(undo)
+			clearUndo()
 		},
 	}}
 }
@@ -98,29 +101,82 @@ func RunFileOperation(op, source, target string) {
 	switch op {
 	case "rename", "move":
 		if err := os.Rename(src, dst); err == nil {
-			lastFileUndo = &fileUndo{
-				title:  operationTitle(op),
-				action: func() { os.Rename(dst, src) },
-			}
+			saveUndo(fileUndo{Title: operationTitle(op), Kind: "rename", Source: dst, Target: src})
+			SetStatus(true, operationTitle(op)+": "+shortenPath(src)+" -> "+shortenPath(dst))
+		} else {
+			SetStatus(false, operationTitle(op)+" failed: "+err.Error())
 		}
 	case "copy":
 		if err := copyPath(src, dst); err == nil {
-			lastFileUndo = &fileUndo{
-				title:  "Copy File",
-				action: func() { os.RemoveAll(dst) },
-			}
+			saveUndo(fileUndo{Title: "Copy File", Kind: "delete", Source: dst})
+			SetStatus(true, "Copy File: "+shortenPath(src)+" -> "+shortenPath(dst))
+		} else {
+			SetStatus(false, "Copy File failed: "+err.Error())
 		}
 	}
 }
 
 func SetTrashUndo() {
-	lastFileUndo = &fileUndo{
-		title: "Move to Trash",
-		action: func() {
-			if _, err := exec.LookPath("gio"); err == nil {
-				exec.Command("gio", "trash", "--restore").Start()
+	saveUndo(fileUndo{Title: "Move to Trash", Kind: "gio-trash-restore"})
+}
+
+func currentFileUndo() *fileUndo {
+	if lastFileUndo != nil {
+		return lastFileUndo
+	}
+	data, err := os.ReadFile(fileUndoPath())
+	if err != nil {
+		return nil
+	}
+	var undo fileUndo
+	if json.Unmarshal(data, &undo) != nil || undo.Kind == "" {
+		return nil
+	}
+	lastFileUndo = &undo
+	return &undo
+}
+
+func saveUndo(undo fileUndo) {
+	lastFileUndo = &undo
+	os.MkdirAll(filepath.Dir(fileUndoPath()), 0755)
+	data, _ := json.Marshal(undo)
+	os.WriteFile(fileUndoPath(), data, 0644)
+}
+
+func clearUndo() {
+	lastFileUndo = nil
+	os.Remove(fileUndoPath())
+}
+
+func fileUndoPath() string {
+	return filepath.Join(os.Getenv("HOME"), ".local", "share", "spark", "undo.json")
+}
+
+func runUndo(undo *fileUndo) {
+	if undo == nil {
+		return
+	}
+	switch undo.Kind {
+	case "rename":
+		if err := os.Rename(undo.Source, undo.Target); err != nil {
+			SetStatus(false, "Undo failed: "+err.Error())
+		} else {
+			SetStatus(true, "Undo: "+undo.Title)
+		}
+	case "delete":
+		if err := os.RemoveAll(undo.Source); err != nil {
+			SetStatus(false, "Undo failed: "+err.Error())
+		} else {
+			SetStatus(true, "Undo: "+undo.Title)
+		}
+	case "gio-trash-restore":
+		if _, err := exec.LookPath("gio"); err == nil {
+			if err := exec.Command("gio", "trash", "--restore").Run(); err != nil {
+				SetStatus(false, "Undo trash failed: "+err.Error())
+			} else {
+				SetStatus(true, "Undo: "+undo.Title)
 			}
-		},
+		}
 	}
 }
 

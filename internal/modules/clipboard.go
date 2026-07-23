@@ -2,7 +2,10 @@ package modules
 
 import (
 	"bytes"
+	"encoding/hex"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -76,11 +79,13 @@ func ClipboardSearch(query string) []Result {
 
 		clipID := id // capture
 		icon, desc := clipboardDisplay(preview, directPaste)
+		previewImage := clipboardPreviewImage(preview)
 		results = append(results, Result{
-			Type:  "clipboard",
-			Title: preview,
-			Desc:  desc,
-			Icon:  icon,
+			Type:         "clipboard",
+			Title:        preview,
+			Desc:         desc,
+			Icon:         icon,
+			PreviewImage: previewImage,
 			Action: func() {
 				// Decode and copy to clipboard
 				decode := exec.Command("cliphist", "decode")
@@ -112,6 +117,61 @@ func ClipboardSearch(query string) []Result {
 	}
 
 	return results
+}
+
+func clipboardPreviewImage(preview string) string {
+	if path := clipboardImagePath(preview); path != "" {
+		return path
+	}
+	color := strings.TrimSpace(preview)
+	if len(color) == 7 && strings.HasPrefix(color, "#") {
+		if path := colorSwatch(color); path != "" {
+			return path
+		}
+	}
+	return ""
+}
+
+func clipboardImagePath(preview string) string {
+	for _, field := range strings.Fields(preview) {
+		field = strings.TrimPrefix(field, "file://")
+		field = strings.Trim(field, "'\"")
+		lower := strings.ToLower(field)
+		if !(strings.HasSuffix(lower, ".png") || strings.HasSuffix(lower, ".jpg") || strings.HasSuffix(lower, ".jpeg") || strings.HasSuffix(lower, ".webp")) {
+			continue
+		}
+		if strings.HasPrefix(field, "~") {
+			field = expandHome(field)
+		}
+		if _, err := os.Stat(field); err == nil {
+			return field
+		}
+	}
+	return ""
+}
+
+func colorSwatch(color string) string {
+	raw, err := hex.DecodeString(strings.TrimPrefix(color, "#"))
+	if err != nil || len(raw) != 3 {
+		return ""
+	}
+	dir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "swatches")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return ""
+	}
+	path := filepath.Join(dir, strings.TrimPrefix(color, "#")+".ppm")
+	if _, err := os.Stat(path); err == nil {
+		return path
+	}
+	var b strings.Builder
+	b.WriteString("P3\n64 64\n255\n")
+	for i := 0; i < 64*64; i++ {
+		b.WriteString(stringInt(int(raw[0])) + " " + stringInt(int(raw[1])) + " " + stringInt(int(raw[2])) + "\n")
+	}
+	if os.WriteFile(path, []byte(b.String()), 0644) != nil {
+		return ""
+	}
+	return path
 }
 
 func clipboardDisplay(preview string, directPaste bool) (string, string) {

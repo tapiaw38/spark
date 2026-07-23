@@ -31,7 +31,11 @@ func SyncSearch(query string) []Result {
 			Icon:    "document-open",
 			Confirm: true,
 			Action: func() {
-				importSyncZip(expandHome(zipPath), os.Getenv("HOME"))
+				if err := importSyncZip(expandHome(zipPath), os.Getenv("HOME")); err != nil {
+					SetStatus(false, "Sync import failed: "+err.Error())
+				} else {
+					SetStatus(true, "Imported Spark settings from "+zipPath)
+				}
 			},
 		}}
 	}
@@ -61,8 +65,12 @@ func SyncSearch(query string) []Result {
 			Desc:  exportPath,
 			Icon:  "document-save",
 			Action: func() {
-				exportSyncZip(exportPath, []string{configDir, dataDir})
-				revealFile(exportPath)
+				if err := exportSyncZip(exportPath, []string{configDir, dataDir}); err != nil {
+					SetStatus(false, "Sync export failed: "+err.Error())
+				} else {
+					SetStatus(true, "Exported Spark settings to "+exportPath)
+					revealFile(exportPath)
+				}
 			},
 		},
 		{

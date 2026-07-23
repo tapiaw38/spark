@@ -16,6 +16,7 @@ func HelpSearch(query string) []Result {
 		helpResult("Destination Picker", "pick copy|move source | folder"),
 		helpResult("File Ops", "rename/copy/move source | target"),
 		helpResult("Undo", "undo last file op"),
+		helpResult("Status", "status / last"),
 		helpResult("File Buffer", "buffer / buf"),
 		helpResult("Recent Documents", "recent query / recent app name"),
 		helpResult("Large Type", "large text / lt text"),

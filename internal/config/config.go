@@ -23,10 +23,11 @@ type Config struct {
 	WebShortcuts map[string]WebShortcut `yaml:"web_shortcuts"`
 
 	// Behavior
-	ShowIcons    bool `yaml:"show_icons"`
-	IconSize     int  `yaml:"icon_size"`
-	MarginTop    int  `yaml:"margin_top"`
-	HistoryBoost int  `yaml:"history_boost"`
+	ShowIcons     bool   `yaml:"show_icons"`
+	IconSize      int    `yaml:"icon_size"`
+	MarginTop     int    `yaml:"margin_top"`
+	HistoryBoost  int    `yaml:"history_boost"`
+	SpellLanguage string `yaml:"spell_language"`
 
 	// Hotkey (for mango WM: SUPER,s or SUPER+SHIFT,space etc.)
 	Hotkey string `yaml:"hotkey"`
@@ -51,6 +52,7 @@ var defaultConfig = Config{
 	IconSize:        24,
 	MarginTop:       100,
 	HistoryBoost:    3,
+	SpellLanguage:   "en",
 	Hotkey:          "Alt,space",
 	WebShortcuts: map[string]WebShortcut{
 		"g":    {Name: "Google", URL: "https://www.google.com/search?q=%s", Icon: "web-browser"},
