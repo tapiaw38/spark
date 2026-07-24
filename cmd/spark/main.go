@@ -524,7 +524,40 @@ func updateResults(query string) {
 	// 20. File search (explicit f prefix)
 	currentResults = append(currentResults, modules.FileSearch(query)...)
 
-	// 21. Apps (limit search for short queries)
+	// 21. Emoji picker (emoji prefix)
+	currentResults = append(currentResults, modules.EmojiSearch(query)...)
+
+	// 22. Dev tools (b64, url, hash, uuid, epoch)
+	currentResults = append(currentResults, modules.DevToolsSearch(query)...)
+
+	// 23. Unit conversion (N unit to unit)
+	currentResults = append(currentResults, modules.UnitSearch(query)...)
+
+	// 24. SSH hosts (ssh prefix)
+	currentResults = append(currentResults, modules.SSHSearch(query)...)
+
+	// 25. Kill process (kill prefix)
+	currentResults = append(currentResults, modules.KillSearch(query)...)
+
+	// 26. Screenshot (screenshot/ss prefix)
+	currentResults = append(currentResults, modules.ScreenshotSearch(query)...)
+
+	// 27. Window switcher (w/win prefix)
+	currentResults = append(currentResults, modules.WindowSearch(query)...)
+
+	// 28. Timer (timer prefix)
+	currentResults = append(currentResults, modules.TimerSearch(query)...)
+
+	// 29. Weather (weather prefix)
+	currentResults = append(currentResults, modules.WeatherSearch(query)...)
+
+	// 30. Password store (pass prefix)
+	currentResults = append(currentResults, modules.PassSearch(query)...)
+
+	// 31. Browser bookmarks (bm prefix)
+	currentResults = append(currentResults, modules.BookmarksSearch(query)...)
+
+	// 32. Apps (limit search for short queries)
 	var appResults []apps.App
 	if len(query) <= 2 {
 		appResults = apps.QuickSearch(allApps, query)
@@ -862,9 +895,18 @@ func createResultRow(r modules.Result) *gtk.ListBoxRow {
 
 	// Icon
 	if config.Current.ShowIcons {
-		icon := loadIcon(r.Icon, config.Current.IconSize)
-		if icon != nil {
+		if r.IconText != "" {
+			icon := gtk.NewLabel(r.IconText)
+			icon.SetName("spark-icon-text")
+			icon.SetSizeRequest(config.Current.IconSize+8, config.Current.IconSize+8)
+			icon.SetXAlign(0.5)
+			icon.SetYAlign(0.5)
 			hbox.PackStart(icon, false, false, 0)
+		} else {
+			icon := loadIcon(r.Icon, config.Current.IconSize)
+			if icon != nil {
+				hbox.PackStart(icon, false, false, 0)
+			}
 		}
 	}
 
@@ -1140,6 +1182,10 @@ func loadCSS() {
 			background: rgba(255, 255, 255, 0.08);
 			border: 1px solid rgba(255, 255, 255, 0.14);
 			padding: 6px;
+		}
+		#spark-icon-text {
+			font-family: "Noto Color Emoji", "Twemoji", "Segoe UI Emoji", sans-serif;
+			font-size: 22px;
 		}
 		#spotify-view {
 			background: rgba(0, 0, 0, 0.2);

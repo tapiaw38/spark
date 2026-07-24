@@ -6,6 +6,7 @@ type Result struct {
 	Title           string
 	Desc            string
 	Icon            string
+	IconText        string // Optional literal icon text, e.g. emoji
 	Preview         string // Optional preview text
 	PreviewImage    string // Optional preview image path
 	PreviewImageURL string // Optional remote preview image URL

@@ -101,6 +101,21 @@ spark/
 | `gh` | GitHub | `gh repo` |
 | `lock` | Lock screen | `lock` |
 | `shutdown` | Shutdown | `shutdown` |
+| `emoji` | Emoji picker | `emoji fire` |
+| `b64`/`b64d` | Base64 encode/decode | `b64 hello` |
+| `url`/`urld` | URL encode/decode | `url a b&c` |
+| `hash` | SHA-256 | `hash secret` |
+| `uuid` | Generate UUID v4 | `uuid` |
+| `epoch` | Unix time / date | `epoch`, `epoch 1700000000` |
+| (units) | Unit conversion | `100 km to mi`, `50f to c`, `5 gb to mb` |
+| `ssh` | SSH hosts from ~/.ssh/config | `ssh`, `ssh prod` |
+| `kill` | Kill process | `kill firefox` |
+| `screenshot`/`ss` | Screenshot (grim/slurp) | `ss` |
+| `w` | Windows or MangoWM workspaces | `w`, `w firefox`, `w 2` |
+| `timer` | Countdown → notification | `timer 5m` |
+| `weather` | Weather from wttr.in | `weather`, `weather Berlin` |
+| `pass` | Password store (pass) | `pass github` |
+| `bm` | Browser bookmarks | `bm docs` |
 
 Quick Look: press `Shift`; PDF/doc previews show page/zoom controls, and `PageUp/PageDown` plus `+/-` also work.
 File ops: Tab on a file, then Rename/Copy/Move opens a visual picker with breadcrumbs and folder browsing.
