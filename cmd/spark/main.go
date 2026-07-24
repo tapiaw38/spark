@@ -30,6 +30,8 @@ var (
 	resultsScroll   *gtk.ScrolledWindow
 	searchEntry     *gtk.Entry
 	previewBox      *gtk.Box
+	previewToolbar  *gtk.Box
+	previewMeta     *gtk.Label
 	previewImage    *gtk.Image
 	previewLabel    *gtk.Label
 	searchMu        sync.Mutex
@@ -188,8 +190,28 @@ func main() {
 	// Preview pane - fixed size to prevent layout jumps
 	previewBox = gtk.NewBox(gtk.OrientationVertical, 8)
 	previewBox.SetName("spark-preview")
-	previewBox.SetSizeRequest(-1, 200)
+	previewBox.SetSizeRequest(-1, 232)
 	previewBox.SetNoShowAll(true)
+
+	previewToolbar = gtk.NewBox(gtk.OrientationHorizontal, 6)
+	previewToolbar.SetName("spark-preview-toolbar")
+	previewToolbar.SetNoShowAll(true)
+	prevPageBtn := gtk.NewButtonWithLabel("‹")
+	nextPageBtn := gtk.NewButtonWithLabel("›")
+	zoomOutBtn := gtk.NewButtonWithLabel("-")
+	zoomInBtn := gtk.NewButtonWithLabel("+")
+	previewMeta = gtk.NewLabel("")
+	previewMeta.SetXAlign(0)
+	previewMeta.SetName("spark-desc")
+	prevPageBtn.Connect("clicked", func() { changePreviewPage(-1) })
+	nextPageBtn.Connect("clicked", func() { changePreviewPage(1) })
+	zoomOutBtn.Connect("clicked", func() { changePreviewZoom(-60) })
+	zoomInBtn.Connect("clicked", func() { changePreviewZoom(60) })
+	previewToolbar.PackStart(prevPageBtn, false, false, 0)
+	previewToolbar.PackStart(nextPageBtn, false, false, 0)
+	previewToolbar.PackStart(zoomOutBtn, false, false, 0)
+	previewToolbar.PackStart(zoomInBtn, false, false, 0)
+	previewToolbar.PackStart(previewMeta, true, true, 0)
 
 	previewImage = gtk.NewImage()
 	previewImage.SetName("spark-preview-image")
@@ -204,6 +226,7 @@ func main() {
 	previewLabel.SetMaxWidthChars(40)
 	previewLabel.SetSizeRequest(300, -1) // Fixed width
 	previewLabel.SetNoShowAll(true)
+	previewBox.PackStart(previewToolbar, false, false, 0)
 	previewBox.PackStart(previewImage, false, false, 0)
 	previewBox.PackStart(previewLabel, false, false, 0)
 
@@ -615,6 +638,7 @@ func updatePreview(row *gtk.ListBoxRow) {
 	}
 
 	r := currentResults[idx]
+	updatePreviewToolbar(r)
 
 	if r.Type == "file" {
 		version := atomic.AddUint64(&previewVersion, 1)
@@ -714,6 +738,60 @@ func updatePreview(row *gtk.ListBoxRow) {
 	showPreviewText(preview)
 }
 
+func changePreviewPage(delta int) {
+	if !quickLookActive {
+		return
+	}
+	previewPage += delta
+	if previewPage < 1 {
+		previewPage = 1
+	}
+	updatePreview(listBox.SelectedRow())
+}
+
+func changePreviewZoom(delta int) {
+	if !quickLookActive {
+		return
+	}
+	if previewScale == 0 {
+		previewScale = 360
+	}
+	previewScale += delta
+	if previewScale < 180 {
+		previewScale = 180
+	}
+	if previewScale > 720 {
+		previewScale = 720
+	}
+	updatePreview(listBox.SelectedRow())
+}
+
+func updatePreviewToolbar(r modules.Result) {
+	if previewToolbar == nil || previewMeta == nil {
+		return
+	}
+	if r.Type != "file" {
+		previewToolbar.Hide()
+		return
+	}
+	page := previewPage
+	if page < 1 {
+		page = 1
+	}
+	scale := previewScale
+	if scale == 0 {
+		scale = 360
+	}
+	ext := strings.ToLower(filepath.Ext(r.Title))
+	if ext == ".pdf" || ext == ".docx" || ext == ".odt" {
+		previewMeta.SetText(r.Title + "  page " + stringIntLocal(page) + "  zoom " + stringIntLocal(scale))
+		previewToolbar.ShowAll()
+		return
+	}
+	previewMeta.SetText(r.Title)
+	previewToolbar.ShowAll()
+}
+
 func hidePreview() {
 	cancelPreviewLoad()
 	clearPreviewContent()
@@ -725,6 +803,9 @@ func cancelPreviewLoad() {
 }
 
 func clearPreviewContent() {
+	if previewToolbar != nil {
+		previewToolbar.Hide()
+	}
 	previewLabel.Hide()
 	previewLabel.SetText("")
 	previewImage.Hide()
@@ -1572,7 +1653,7 @@ func splitPaths(raw string) []string {
 func showFileOpWindow(op, sourceValue, targetValue string) {
 	window := gtk.NewWindow(gtk.WindowToplevel)
 	window.SetTitle("Spark File Operation")
-	window.SetDefaultSize(620, 220)
+	window.SetDefaultSize(720, 520)
 
 	box := gtk.NewBox(gtk.OrientationVertical, 10)
 	box.SetMarginStart(16)
@@ -1580,8 +1661,13 @@ func showFileOpWindow(op, sourceValue, targetValue string) {
 	box.SetMarginTop(16)
 	box.SetMarginBottom(16)
 
-	crumb := gtk.NewLabel(fileOpBreadcrumb(sourceValue))
-	crumb.SetXAlign(0)
+	crumbs := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	browser := gtk.NewListBox()
+	browser.SetSelectionMode(gtk.SelectionSingle)
+	browserScroll := gtk.NewScrolledWindow(nil, nil)
+	browserScroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
+	browserScroll.SetSizeRequest(-1, 220)
+	browserScroll.Add(browser)
 
 	opEntry := gtk.NewEntry()
 	opEntry.SetPlaceholderText("Operation")
@@ -1593,14 +1679,122 @@ func showFileOpWindow(op, sourceValue, targetValue string) {
 	targetEntry.SetPlaceholderText("Target name or folder")
 	targetEntry.SetText(targetValue)
 
+	currentDir := targetValue
+	if currentDir == "" {
+		currentDir = filepath.Dir(sourceValue)
+	}
+	if info, err := os.Stat(currentDir); err != nil || !info.IsDir() {
+		currentDir = filepath.Dir(currentDir)
+	}
+
+	var refreshBrowser func(string)
+	var setCrumbs func(string)
+	var crumbWidgets []gtk.Widgetter
+	setCrumbs = func(dir string) {
+		for _, child := range crumbWidgets {
+			crumbs.Remove(child)
+		}
+		crumbWidgets = nil
+		clean := filepath.Clean(dir)
+		home := os.Getenv("HOME")
+		parts := []struct {
+			label string
+			path  string
+		}{{label: "/", path: string(os.PathSeparator)}}
+		if strings.HasPrefix(clean, home) {
+			parts = append(parts, struct {
+				label string
+				path  string
+			}{label: "~", path: home})
+			rel, _ := filepath.Rel(home, clean)
+			if rel != "." {
+				cur := home
+				for _, part := range strings.Split(rel, string(os.PathSeparator)) {
+					cur = filepath.Join(cur, part)
+					parts = append(parts, struct {
+						label string
+						path  string
+					}{label: part, path: cur})
+				}
+			}
+		} else {
+			cur := string(os.PathSeparator)
+			for _, part := range strings.Split(strings.TrimPrefix(clean, string(os.PathSeparator)), string(os.PathSeparator)) {
+				if part == "" {
+					continue
+				}
+				cur = filepath.Join(cur, part)
+				parts = append(parts, struct {
+					label string
+					path  string
+				}{label: part, path: cur})
+			}
+		}
+		for i, part := range parts {
+			p := part.path
+			btn := gtk.NewButtonWithLabel(part.label)
+			btn.Connect("clicked", func() { refreshBrowser(p) })
+			crumbs.PackStart(btn, false, false, 0)
+			crumbWidgets = append(crumbWidgets, btn)
+			if i < len(parts)-1 {
+				sep := gtk.NewLabel("/")
+				crumbs.PackStart(sep, false, false, 0)
+				crumbWidgets = append(crumbWidgets, sep)
+			}
+		}
+		crumbs.ShowAll()
+	}
+	refreshBrowser = func(dir string) {
+		if dir == "" {
+			return
+		}
+		if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+			dir = filepath.Dir(dir)
+		}
+		currentDir = filepath.Clean(dir)
+		targetEntry.SetText(currentDir)
+		setCrumbs(currentDir)
+		for {
+			row := browser.RowAtIndex(0)
+			if row == nil {
+				break
+			}
+			browser.Remove(row)
+		}
+		if parent := filepath.Dir(currentDir); parent != currentDir {
+			browser.Add(fileOpBrowserRow("..", parent, true, targetEntry, refreshBrowser))
+		}
+		entries, err := os.ReadDir(currentDir)
+		if err != nil {
+			row := gtk.NewListBoxRow()
+			row.Add(gtk.NewLabel(err.Error()))
+			browser.Add(row)
+			browser.ShowAll()
+			return
+		}
+		count := 0
+		for _, entry := range entries {
+			if strings.HasPrefix(entry.Name(), ".") {
+				continue
+			}
+			path := filepath.Join(currentDir, entry.Name())
+			browser.Add(fileOpBrowserRow(entry.Name(), path, entry.IsDir(), targetEntry, refreshBrowser))
+			count++
+			if count >= 80 {
+				break
+			}
+		}
+		browser.ShowAll()
+	}
+
 	buttons := gtk.NewBox(gtk.OrientationHorizontal, 8)
 	homeBtn := gtk.NewButtonWithLabel("Home")
 	homeBtn.Connect("clicked", func() {
-		targetEntry.SetText(os.Getenv("HOME"))
+		refreshBrowser(os.Getenv("HOME"))
 	})
 	downloadsBtn := gtk.NewButtonWithLabel("Downloads")
 	downloadsBtn.Connect("clicked", func() {
-		targetEntry.SetText(filepath.Join(os.Getenv("HOME"), "Downloads"))
+		refreshBrowser(filepath.Join(os.Getenv("HOME"), "Downloads"))
 	})
 	chooseBtn := gtk.NewButtonWithLabel("Choose")
 	chooseBtn.Connect("clicked", func() {
@@ -1608,7 +1802,7 @@ func showFileOpWindow(op, sourceValue, targetValue string) {
 			if path := choosePath(opEntry.Text() != "rename"); path != "" {
 				glib.IdleAdd(func() {
 					targetEntry.SetText(path)
-					crumb.SetText(fileOpBreadcrumb(path))
+					refreshBrowser(path)
 				})
 			}
 		}()
@@ -1627,15 +1821,45 @@ func showFileOpWindow(op, sourceValue, targetValue string) {
 	buttons.PackEnd(runBtn, false, false, 0)
 	buttons.PackEnd(cancelBtn, false, false, 0)
 
-	box.PackStart(crumb, false, false, 0)
+	box.PackStart(crumbs, false, false, 0)
 	box.PackStart(opEntry, false, false, 0)
 	box.PackStart(sourceEntry, false, false, 0)
 	box.PackStart(targetEntry, false, false, 0)
+	box.PackStart(browserScroll, true, true, 0)
 	box.PackStart(buttons, false, false, 0)
 	window.Add(box)
 	window.Connect("destroy", func() { gtk.MainQuit() })
+	refreshBrowser(currentDir)
 	window.ShowAll()
 	targetEntry.GrabFocus()
+}
+
+func fileOpBrowserRow(name, path string, isDir bool, targetEntry *gtk.Entry, refresh func(string)) *gtk.ListBoxRow {
+	row := gtk.NewListBoxRow()
+	box := gtk.NewBox(gtk.OrientationHorizontal, 8)
+	box.SetMarginStart(8)
+	box.SetMarginEnd(8)
+	box.SetMarginTop(6)
+	box.SetMarginBottom(6)
+	icon := "text-x-generic"
+	if isDir {
+		icon = "folder"
+	}
+	if img := loadIcon(icon, 20); img != nil {
+		box.PackStart(img, false, false, 0)
+	}
+	label := gtk.NewLabel(name)
+	label.SetXAlign(0)
+	box.PackStart(label, true, true, 0)
+	row.Add(box)
+	row.Connect("activate", func() {
+		if isDir {
+			refresh(path)
+			return
+		}
+		targetEntry.SetText(path)
+	})
+	return row
 }
 
 func fileOpBreadcrumb(path string) string {

@@ -102,7 +102,8 @@ spark/
 | `lock` | Lock screen | `lock` |
 | `shutdown` | Shutdown | `shutdown` |
 
-Quick Look: press `Shift`, then `PageUp/PageDown` for PDF pages and `+/-` for zoom.
+Quick Look: press `Shift`; PDF/doc previews show page/zoom controls, and `PageUp/PageDown` plus `+/-` also work.
+File ops: Tab on a file, then Rename/Copy/Move opens a visual picker with breadcrumbs and folder browsing.
 
 ## Config
 

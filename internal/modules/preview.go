@@ -44,8 +44,14 @@ func GetPreviewImageAt(r Result, page, scale int) string {
 	}
 
 	if !isImageFile(r.Title) {
-		if strings.EqualFold(filepath.Ext(r.Title), ".pdf") {
+		ext := strings.ToLower(filepath.Ext(r.Title))
+		if ext == ".pdf" {
 			return previewPDFImageAt(GetFilePath(r), page, scale)
+		}
+		if ext == ".docx" || ext == ".odt" {
+			if pdf := previewOfficePDF(GetFilePath(r)); pdf != "" {
+				return previewPDFImageAt(pdf, page, scale)
+			}
 		}
 		return ""
 	}
@@ -218,7 +224,7 @@ func previewPDFImageAt(path string, page, scale int) string {
 		return ""
 	}
 	base := filepath.Join(cacheDir, simpleHash(path)+"-p"+stringInt(page)+"-s"+stringInt(scale))
-	png := base + "-1.png"
+	png := base + ".png"
 	if _, err := os.Stat(png); err == nil {
 		return png
 	}
@@ -227,6 +233,86 @@ func previewPDFImageAt(path string, page, scale int) string {
 		return png
 	}
 	return ""
+}
+
+func previewOfficePDF(path string) string {
+	cacheDir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "office-preview")
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		return ""
+	}
+	target := filepath.Join(cacheDir, simpleHash(path)+".pdf")
+	if _, err := os.Stat(target); err == nil {
+		return target
+	}
+	cmdName := "libreoffice"
+	if _, err := exec.LookPath(cmdName); err != nil {
+		cmdName = "soffice"
+	}
+	tmpDir := filepath.Join(cacheDir, simpleHash(path)+"-work")
+	os.RemoveAll(tmpDir)
+	os.MkdirAll(tmpDir, 0755)
+	defer os.RemoveAll(tmpDir)
+	if !convertOfficeToPDF(path, tmpDir) {
+		return ""
+	}
+	entries, err := os.ReadDir(tmpDir)
+	if err != nil {
+		return ""
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.EqualFold(filepath.Ext(entry.Name()), ".pdf") {
+			continue
+		}
+		src := filepath.Join(tmpDir, entry.Name())
+		data, err := os.ReadFile(src)
+		if err != nil {
+			return ""
+		}
+		if os.WriteFile(target, data, 0644) == nil {
+			return target
+		}
+	}
+	return ""
+}
+
+func convertOfficeToPDF(path, outDir string) bool {
+	for _, attempt := range officeConvertCommands(path, outDir) {
+		if _, err := exec.LookPath(attempt[0]); err != nil {
+			continue
+		}
+		if exec.Command(attempt[0], attempt[1:]...).Run() == nil {
+			if hasPDF(outDir) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func officeConvertCommands(path, outDir string) [][]string {
+	return [][]string{
+		{"libreoffice", "--headless", "--convert-to", "pdf", "--outdir", outDir, path},
+		{"soffice", "--headless", "--convert-to", "pdf", "--outdir", outDir, path},
+		{"onlyoffice-desktopeditors", "--convert-to", "pdf", "--outdir", outDir, path},
+		{"onlyoffice-desktopeditors", "--convert-to", "pdf", "--output-dir", outDir, path},
+		{"onlyoffice-desktopeditors", "--headless", "--convert-to", "pdf", "--outdir", outDir, path},
+		{"desktopeditors", "--convert-to", "pdf", "--outdir", outDir, path},
+		{"desktopeditors", "--convert-to", "pdf", "--output-dir", outDir, path},
+		{"desktopeditors", "--headless", "--convert-to", "pdf", "--outdir", outDir, path},
+	}
+}
+
+func hasPDF(dir string) bool {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.EqualFold(filepath.Ext(entry.Name()), ".pdf") {
+			return true
+		}
+	}
+	return false
 }
 
 func previewAudio(path string) string {
