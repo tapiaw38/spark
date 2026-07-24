@@ -19,17 +19,33 @@ type SpotifyInfo struct {
 	ArtPath string // Local cached path
 }
 
+type PlayerKind string
+
+const (
+	PlayerSpotify PlayerKind = "spotify"
+	PlayerYouTube PlayerKind = "youtube"
+)
+
 // GetSpotifyInfo returns current playback information
 func GetSpotifyInfo() *SpotifyInfo {
-	title, _ := exec.Command("playerctl", "metadata", "title").Output()
+	return GetPlayerInfo(PlayerSpotify)
+}
+
+func GetPlayerInfo(kind PlayerKind) *SpotifyInfo {
+	player := mediaPlayer(kind)
+	if player == "" {
+		return nil
+	}
+
+	title, _ := playerctlMedia(player, "metadata", "title").Output()
 	if len(strings.TrimSpace(string(title))) == 0 {
 		return nil
 	}
 
-	artist, _ := exec.Command("playerctl", "metadata", "artist").Output()
-	album, _ := exec.Command("playerctl", "metadata", "album").Output()
-	status, _ := exec.Command("playerctl", "status").Output()
-	artURL, _ := exec.Command("playerctl", "metadata", "mpris:artUrl").Output()
+	artist, _ := playerctlMedia(player, "metadata", "artist").Output()
+	album, _ := playerctlMedia(player, "metadata", "album").Output()
+	status, _ := playerctlMedia(player, "status").Output()
+	artURL, _ := playerctlMedia(player, "metadata", "mpris:artUrl").Output()
 
 	info := &SpotifyInfo{
 		Title:  strings.TrimSpace(string(title)),
@@ -45,6 +61,127 @@ func GetSpotifyInfo() *SpotifyInfo {
 	}
 
 	return info
+}
+
+func spotifyPlayer() string {
+	return mediaPlayer(PlayerSpotify)
+}
+
+func youtubePlayer() string {
+	return mediaPlayer(PlayerYouTube)
+}
+
+func mediaPlayer(kind PlayerKind) string {
+	out, err := exec.Command("playerctl", "-l").Output()
+	if err != nil {
+		return ""
+	}
+	var fallback string
+	for _, line := range strings.Split(string(out), "\n") {
+		player := strings.TrimSpace(line)
+		if player == "" {
+			continue
+		}
+		lower := strings.ToLower(player)
+		switch kind {
+		case PlayerSpotify:
+			if strings.Contains(lower, "spotify") {
+				return player
+			}
+		case PlayerYouTube:
+			if strings.Contains(lower, "youtube") {
+				return player
+			}
+			if fallback == "" && (strings.Contains(lower, "firefox") || strings.Contains(lower, "chrome") || strings.Contains(lower, "chromium") || strings.Contains(lower, "brave") || strings.Contains(lower, "vivaldi")) {
+				fallback = player
+			}
+		}
+	}
+	return fallback
+}
+
+func playerctlMedia(player string, args ...string) *exec.Cmd {
+	all := append([]string{"--player=" + player}, args...)
+	return exec.Command("playerctl", all...)
+}
+
+func playerctlSpotify(player string, args ...string) *exec.Cmd {
+	return playerctlMedia(player, args...)
+}
+
+func playerctlYouTube(player string, args ...string) *exec.Cmd {
+	return playerctlMedia(player, args...)
+}
+
+func playerAction(kind PlayerKind, args ...string) func() {
+	return func() {
+		player := mediaPlayer(kind)
+		if player == "" {
+			SetStatus(false, string(kind)+" player not detected")
+			return
+		}
+		playerctlMedia(player, args...).Run()
+	}
+}
+
+func PlayerControls(kind PlayerKind) []Result {
+	label := "Spotify"
+	if kind == PlayerYouTube {
+		label = "YouTube"
+	}
+	return []Result{
+		{Type: "media-control", Title: "Play/Pause", Desc: label, Icon: "media-playback-start", Action: playerAction(kind, "play-pause")},
+		{Type: "media-control", Title: "Next", Desc: label, Icon: "media-skip-forward", Action: playerAction(kind, "next")},
+		{Type: "media-control", Title: "Previous", Desc: label, Icon: "media-skip-backward", Action: playerAction(kind, "previous")},
+		{Type: "media-control", Title: "Volume Up", Desc: "+10%", Icon: "audio-volume-high", Action: playerAction(kind, "volume", "0.1+")},
+		{Type: "media-control", Title: "Volume Down", Desc: "-10%", Icon: "audio-volume-low", Action: playerAction(kind, "volume", "0.1-")},
+	}
+}
+
+func playerForQuickControls(q string) (PlayerKind, string, bool) {
+	switch {
+	case strings.HasPrefix(q, "yp "):
+		return PlayerYouTube, strings.TrimSpace(strings.TrimPrefix(q, "yp ")), true
+	case strings.HasPrefix(q, "youtube player "):
+		return PlayerYouTube, strings.TrimSpace(strings.TrimPrefix(q, "youtube player ")), true
+	default:
+		return PlayerSpotify, q, false
+	}
+}
+
+func YouTubePlayerControls(query string) []Result {
+	q := strings.ToLower(strings.TrimSpace(query))
+	if q != "yp play" && q != "yp pause" && q != "yp next" && q != "yp prev" && q != "yp previous" {
+		return nil
+	}
+	_, action, _ := playerForQuickControls(q)
+	switch action {
+	case "play", "pause":
+		return []Result{{Type: "youtube-player", Title: "YouTube Play/Pause", Icon: "media-playback-start", Action: playerAction(PlayerYouTube, "play-pause")}}
+	case "next":
+		return []Result{{Type: "youtube-player", Title: "YouTube Next", Icon: "media-skip-forward", Action: playerAction(PlayerYouTube, "next")}}
+	case "prev", "previous":
+		return []Result{{Type: "youtube-player", Title: "YouTube Previous", Icon: "media-skip-backward", Action: playerAction(PlayerYouTube, "previous")}}
+	default:
+		return nil
+	}
+}
+
+func oldSpotifyPlayer() string {
+	out, err := exec.Command("playerctl", "-l").Output()
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		player := strings.TrimSpace(line)
+		if player == "" {
+			continue
+		}
+		if strings.Contains(strings.ToLower(player), "spotify") {
+			return player
+		}
+	}
+	return ""
 }
 
 // cacheAlbumArt downloads and caches album art, returns local path
@@ -105,18 +242,7 @@ func simpleHash(s string) string {
 
 // SpotifyControls returns control actions
 func SpotifyControls() []Result {
-	return []Result{
-		{Type: "spotify-control", Title: "Play/Pause", Desc: "Toggle playback", Icon: "media-playback-start",
-			Action: func() { exec.Command("playerctl", "play-pause").Run() }},
-		{Type: "spotify-control", Title: "Next", Desc: "Next track", Icon: "media-skip-forward",
-			Action: func() { exec.Command("playerctl", "next").Run() }},
-		{Type: "spotify-control", Title: "Previous", Desc: "Previous track", Icon: "media-skip-backward",
-			Action: func() { exec.Command("playerctl", "previous").Run() }},
-		{Type: "spotify-control", Title: "Volume Up", Desc: "+10%", Icon: "audio-volume-high",
-			Action: func() { exec.Command("playerctl", "volume", "0.1+").Run() }},
-		{Type: "spotify-control", Title: "Volume Down", Desc: "-10%", Icon: "audio-volume-low",
-			Action: func() { exec.Command("playerctl", "volume", "0.1-").Run() }},
-	}
+	return PlayerControls(PlayerSpotify)
 }
 
 // IsSpotifyQuery returns true if query triggers spotify mode
@@ -125,22 +251,37 @@ func IsSpotifyQuery(query string) bool {
 	return q == "sp" || q == "spotify" || strings.HasPrefix(q, "sp ")
 }
 
+func IsYouTubePlayerQuery(query string) bool {
+	q := strings.ToLower(strings.TrimSpace(query))
+	return q == "yp" || q == "youtube player" || strings.HasPrefix(q, "yp ") || strings.HasPrefix(q, "youtube player ")
+}
+
 // SpotifySearch returns music control results (legacy, for non-spotify-mode)
 func SpotifySearch(query string) []Result {
 	q := strings.ToLower(strings.TrimSpace(query))
 
 	// Only trigger on specific control keywords outside spotify mode
 	if q == "play" || q == "pause" || q == "next" || q == "prev" {
+		player := spotifyPlayer()
+		run := func(args ...string) func() {
+			return func() {
+				if player == "" {
+					SetStatus(false, "Spotify player not detected")
+					return
+				}
+				playerctlSpotify(player, args...).Run()
+			}
+		}
 		switch q {
 		case "play", "pause":
 			return []Result{{Type: "spotify", Title: "Play/Pause", Icon: "media-playback-start",
-				Action: func() { exec.Command("playerctl", "play-pause").Run() }}}
+				Action: run("play-pause")}}
 		case "next":
 			return []Result{{Type: "spotify", Title: "Next Track", Icon: "media-skip-forward",
-				Action: func() { exec.Command("playerctl", "next").Run() }}}
+				Action: run("next")}}
 		case "prev":
 			return []Result{{Type: "spotify", Title: "Previous Track", Icon: "media-skip-backward",
-				Action: func() { exec.Command("playerctl", "previous").Run() }}}
+				Action: run("previous")}}
 		}
 	}
 

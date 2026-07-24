@@ -24,6 +24,9 @@ func MusicSearch(query string) []Result {
 	if strings.HasPrefix(strings.ToLower(query), "music ") {
 		term = strings.TrimSpace(query[6:])
 	}
+	if results := musicBrowseSearch(term); results != nil {
+		return results
+	}
 	mode := "track"
 	for _, prefix := range []string{"artist ", "album ", "genre "} {
 		if strings.HasPrefix(strings.ToLower(term), prefix) {
@@ -33,7 +36,13 @@ func MusicSearch(query string) []Result {
 		}
 	}
 	if len(term) < 2 {
-		return nil
+		return []Result{{
+			Type:   "music",
+			Title:  "Browse Music",
+			Desc:   "m artists / m albums / m genres / m <song>",
+			Icon:   "folder-music",
+			Action: func() {},
+		}}
 	}
 
 	musicDir := filepath.Join(os.Getenv("HOME"), "Music")
@@ -104,6 +113,15 @@ func MusicQueueSearch(query string) []Result {
 			},
 		},
 		{
+			Type:  "music",
+			Title: "Play Queue with mpv",
+			Desc:  stringInt(len(queue)) + " tracks",
+			Icon:  "media-playback-start",
+			Action: func() {
+				playMusicQueueWith("mpv")
+			},
+		},
+		{
 			Type:     "music",
 			Title:    "Clear Queue",
 			Desc:     stringInt(len(queue)) + " tracks",
@@ -127,6 +145,88 @@ func MusicQueueSearch(query string) []Result {
 		})
 	}
 	return results
+}
+
+func musicBrowseSearch(term string) []Result {
+	q := strings.ToLower(strings.TrimSpace(term))
+	mode := ""
+	switch q {
+	case "browse", "artists", "artist":
+		mode = "artist"
+	case "albums", "album":
+		mode = "album"
+	case "genres", "genre":
+		mode = "genre"
+	default:
+		return nil
+	}
+	values := musicTagValues(mode)
+	if len(values) == 0 {
+		return []Result{{
+			Type:   "music",
+			Title:  "No " + mode + " tags found",
+			Desc:   "Requires ffprobe tags or filenames",
+			Icon:   "audio-x-generic",
+			Action: func() {},
+		}}
+	}
+	results := make([]Result, 0, len(values))
+	for _, value := range values {
+		v := value
+		results = append(results, Result{
+			Type:          "music",
+			Title:         strings.Title(mode) + ": " + v,
+			Desc:          "Browse " + mode,
+			Icon:          "audio-x-generic",
+			NavigateQuery: "m " + mode + " " + v,
+			KeepOpen:      true,
+			Action:        func() {},
+		})
+	}
+	return results
+}
+
+func musicTagValues(tag string) []string {
+	musicDir := filepath.Join(os.Getenv("HOME"), "Music")
+	paths := findAudioFiles(musicDir, "")
+	seen := make(map[string]bool)
+	var values []string
+	if _, err := exec.LookPath("ffprobe"); err == nil {
+		for _, path := range paths {
+			cmd := exec.Command("ffprobe", "-v", "quiet", "-show_entries", "format_tags="+tag, "-of", "default=noprint_wrappers=1:nokey=1", path)
+			data, err := cmd.Output()
+			if err != nil {
+				continue
+			}
+			for _, line := range strings.Split(string(data), "\n") {
+				value := strings.TrimSpace(line)
+				key := strings.ToLower(value)
+				if value == "" || seen[key] {
+					continue
+				}
+				seen[key] = true
+				values = append(values, value)
+				if len(values) >= 50 {
+					return values
+				}
+			}
+		}
+	}
+	if len(values) == 0 {
+		for _, path := range paths {
+			value := filepath.Base(filepath.Dir(path))
+			key := strings.ToLower(value)
+			if value == "" || seen[key] {
+				continue
+			}
+			seen[key] = true
+			values = append(values, value)
+			if len(values) >= 50 {
+				break
+			}
+		}
+	}
+	return values
 }
 
 func findAudioFiles(dir, term string) []string {
@@ -257,4 +357,16 @@ func playMusicQueue() {
 	for _, path := range queue {
 		exec.Command("xdg-open", path).Start()
 	}
+}
+
+func playMusicQueueWith(player string) {
+	queue := MusicQueue()
+	if len(queue) == 0 {
+		return
+	}
+	if _, err := exec.LookPath(player); err != nil {
+		SetStatus(false, player+" not installed")
+		return
+	}
+	exec.Command(player, queue...).Start()
 }

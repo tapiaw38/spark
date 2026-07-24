@@ -35,13 +35,17 @@ func GetPreview(r Result) string {
 
 // GetPreviewImage returns a local image path for visual previews.
 func GetPreviewImage(r Result) string {
+	return GetPreviewImageAt(r, 1, 360)
+}
+
+func GetPreviewImageAt(r Result, page, scale int) string {
 	if r.PreviewImage != "" {
 		return expandHome(r.PreviewImage)
 	}
 
 	if !isImageFile(r.Title) {
 		if strings.EqualFold(filepath.Ext(r.Title), ".pdf") {
-			return previewPDFImage(GetFilePath(r))
+			return previewPDFImageAt(GetFilePath(r), page, scale)
 		}
 		return ""
 	}
@@ -196,19 +200,29 @@ func previewPDF(path string) string {
 }
 
 func previewPDFImage(path string) string {
+	return previewPDFImageAt(path, 1, 360)
+}
+
+func previewPDFImageAt(path string, page, scale int) string {
 	if _, err := exec.LookPath("pdftoppm"); err != nil {
 		return ""
+	}
+	if page < 1 {
+		page = 1
+	}
+	if scale < 120 {
+		scale = 360
 	}
 	cacheDir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "pdf-preview")
 	if err := os.MkdirAll(cacheDir, 0755); err != nil {
 		return ""
 	}
-	base := filepath.Join(cacheDir, simpleHash(path))
+	base := filepath.Join(cacheDir, simpleHash(path)+"-p"+stringInt(page)+"-s"+stringInt(scale))
 	png := base + "-1.png"
 	if _, err := os.Stat(png); err == nil {
 		return png
 	}
-	exec.Command("pdftoppm", "-png", "-singlefile", "-f", "1", "-l", "1", "-scale-to", "360", path, base).Run()
+	exec.Command("pdftoppm", "-png", "-singlefile", "-f", stringInt(page), "-l", stringInt(page), "-scale-to", stringInt(scale), path, base).Run()
 	if _, err := os.Stat(png); err == nil {
 		return png
 	}

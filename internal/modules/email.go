@@ -72,11 +72,26 @@ func openEmailComposer(to, subject, body string) {
 }
 
 func sendEmail(to, subject, mailBody string) {
+	SendEmailFull(to, subject, mailBody, nil)
+}
+
+func SendEmailFull(to, subject, mailBody string, attachments []string) {
 	args := []string{}
 	if subject != "" {
 		args = append(args, "--subject", subject)
 	}
 	if mailBody != "" {
+		args = append(args, "--body", mailBody)
+	}
+	for _, path := range attachments {
+		if path != "" {
+			args = append(args, "--attach", path)
+		}
+	}
+	if to != "" {
+		args = append(args, to)
+	}
+	if len(attachments) == 0 && mailBody != "" {
 		link := "mailto:" + url.QueryEscape(to) + "?subject=" + url.QueryEscape(subject) + "&body=" + url.QueryEscape(mailBody)
 		if err := exec.Command("xdg-open", link).Start(); err != nil {
 			SetStatus(false, "Email failed: "+err.Error())
@@ -84,9 +99,6 @@ func sendEmail(to, subject, mailBody string) {
 			SetStatus(true, "Email compose opened")
 		}
 		return
-	}
-	if to != "" {
-		args = append(args, to)
 	}
 	if err := exec.Command("xdg-email", args...).Start(); err != nil {
 		SetStatus(false, "Email failed: "+err.Error())

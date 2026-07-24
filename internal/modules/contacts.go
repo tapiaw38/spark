@@ -2,6 +2,7 @@ package modules
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -10,6 +11,7 @@ type contact struct {
 	name  string
 	email string
 	phone string
+	path  string
 }
 
 // ContactsSearch finds local vCard contacts.
@@ -25,6 +27,9 @@ func ContactsSearch(query string) []Result {
 		filter = strings.TrimSpace(q[len("contact "):])
 	} else if strings.HasPrefix(lower, "contacts ") {
 		filter = strings.TrimSpace(q[len("contacts "):])
+	}
+	if filter == "sync" || filter == "carddav" {
+		return contactSyncResults()
 	}
 
 	contacts := loadContacts(filter)
@@ -51,6 +56,15 @@ func ContactsSearch(query string) []Result {
 					copyText(contact.email)
 				},
 			})
+			results = append(results, Result{
+				Type:  "contact",
+				Title: "Email " + contact.name,
+				Desc:  contact.email,
+				Icon:  "internet-mail",
+				Action: func() {
+					SendEmailFull(contact.email, "", "", nil)
+				},
+			})
 		}
 		if contact.phone != "" {
 			results = append(results, Result{
@@ -66,7 +80,47 @@ func ContactsSearch(query string) []Result {
 		if len(results) >= 50 {
 			break
 		}
+		if contact.path != "" {
+			results = append(results, Result{
+				Type:  "contact",
+				Title: "Open Contact: " + contact.name,
+				Desc:  shortenPath(contact.path),
+				Icon:  "x-office-address-book",
+				Action: func() {
+					exec.Command("xdg-open", contact.path).Start()
+				},
+			})
+		}
 	}
+	return results
+}
+
+func contactSyncResults() []Result {
+	results := []Result{{
+		Type:   "contact",
+		Title:  "CardDAV via vdirsyncer",
+		Desc:   "Run vdirsyncer sync, then contact <name>",
+		Icon:   "emblem-synchronizing",
+		Action: func() { exec.Command("vdirsyncer", "sync").Start() },
+	}}
+	if _, err := exec.LookPath("khal"); err == nil {
+		results = append(results, Result{
+			Type:   "contact",
+			Title:  "Open khal Contacts",
+			Desc:   "khal interactive contact backend",
+			Icon:   "x-office-address-book",
+			Action: func() { exec.Command("foot", "khal", "interactive").Start() },
+		})
+	}
+	results = append(results, Result{
+		Type:  "contact",
+		Title: "Open Contact Data Folder",
+		Desc:  "~/.local/share/contacts",
+		Icon:  "folder-open",
+		Action: func() {
+			exec.Command("xdg-open", filepath.Join(os.Getenv("HOME"), ".local/share/contacts")).Start()
+		},
+	})
 	return results
 }
 
@@ -92,6 +146,7 @@ func loadContacts(filter string) []contact {
 				return nil
 			}
 			c := parseVCard(path)
+			c.path = path
 			if c.name == "" {
 				c.name = strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 			}

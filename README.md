@@ -85,21 +85,24 @@ spark/
 | `large` | Large Type | `large 555-1234` |
 | `large all` | Large Type all monitors | `large all 555-1234` |
 | `help` | Help | `help` |
-| `contact` | Contacts | `contact Ada` |
-| `email` | Email | `email contact | Subject | Body` |
+| `contact` | Contacts | `contact Ada`, `contact carddav` |
+| `email` | Email composer + attachments | `email contact | Subject | Body` |
 | `stats` | Usage Stats | `stats` |
 | `sync` | Sync Settings | `sync`, `sync import ~/spark-settings.zip` |
 | `clip` | Clipboard | `clip` |
 | `define` | Dictionary | `define word` |
 | `spell` | Spelling | `spell recieve` |
 | `sp` | Spotify/Music | `sp` |
-| `m` | Local music | `m song`, `m artist name`, `m album name` |
-| `mq` | Music queue | `mq` |
+| `yp` | YouTube player controls | `yp` |
+| `m` | Local music | `m song`, `m artists`, `m artist name`, `m albums`, `m genres` |
+| `mq` | Music queue | `mq`, play with mpv |
 | `g` | Google search | `g query` |
 | `yt` | YouTube videos | `yt video` |
 | `gh` | GitHub | `gh repo` |
 | `lock` | Lock screen | `lock` |
 | `shutdown` | Shutdown | `shutdown` |
+
+Quick Look: press `Shift`, then `PageUp/PageDown` for PDF pages and `+/-` for zoom.
 
 ## Config
 

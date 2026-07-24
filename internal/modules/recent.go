@@ -78,7 +78,7 @@ func recentFiles(filter, appFilter string) []string {
 
 func recentFilesFromPath(path, filter, appFilter string) []string {
 	if strings.HasSuffix(path, "RecentDocuments") {
-		return kdeRecentDocuments(path, filter)
+		return kdeRecentDocuments(path, filter, appFilter)
 	}
 	f, err := os.Open(path)
 	if err != nil {
@@ -131,7 +131,7 @@ func recentFilesFromPath(path, filter, appFilter string) []string {
 	return results
 }
 
-func kdeRecentDocuments(dir, filter string) []string {
+func kdeRecentDocuments(dir, filter, appFilter string) []string {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil
@@ -144,6 +144,9 @@ func kdeRecentDocuments(dir, filter string) []string {
 		}
 		data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
 		if err != nil {
+			continue
+		}
+		if appFilter != "" && !strings.Contains(strings.ToLower(string(data)), strings.ToLower(appFilter)) {
 			continue
 		}
 		for _, line := range strings.Split(string(data), "\n") {

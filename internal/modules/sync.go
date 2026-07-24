@@ -93,6 +93,20 @@ func SyncSearch(query string) []Result {
 		},
 		{
 			Type:  "sync",
+			Title: "Create Git Bootstrap Script",
+			Desc:  filepath.Join(configDir, "spark-sync-git.sh"),
+			Icon:  "document-save",
+			Action: func() {
+				path := filepath.Join(configDir, "spark-sync-git.sh")
+				if err := writeSyncScript(path, configDir, dataDir); err != nil {
+					SetStatus(false, "Git sync script failed: "+err.Error())
+				} else {
+					SetStatus(true, "Git sync script created: "+path)
+				}
+			},
+		},
+		{
+			Type:  "sync",
 			Title: "Open Syncthing",
 			Desc:  "http://127.0.0.1:8384",
 			Icon:  "emblem-synchronizing",
@@ -108,7 +122,7 @@ func SyncSearch(query string) []Result {
 			Action: func() {
 				path := filepath.Join(configDir, "sync-profile.txt")
 				os.MkdirAll(configDir, 0755)
-				content := "Spark sync paths:\n" + paths + "\n\nUse Syncthing/Git/Dropbox to sync these folders.\n"
+				content := "Spark sync paths:\n" + paths + "\n\nSyncthing:\n- Add both folders as send/receive folders.\n- Keep ignore patterns for cache files.\n\nGit:\ncd " + configDir + "\ngit init\ngit add .\ngit commit -m 'sync spark config'\n\nData:\ncd " + dataDir + "\ngit init\ngit add .\ngit commit -m 'sync spark data'\n"
 				if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 					SetStatus(false, "Sync profile failed: "+err.Error())
 				} else {
@@ -117,6 +131,15 @@ func SyncSearch(query string) []Result {
 			},
 		},
 	}
+}
+
+func writeSyncScript(path, configDir, dataDir string) error {
+	os.MkdirAll(filepath.Dir(path), 0755)
+	content := "#!/bin/sh\nset -eu\nfor dir in '" + configDir + "' '" + dataDir + "'; do\n  mkdir -p \"$dir\"\n  cd \"$dir\"\n  if [ ! -d .git ]; then git init; fi\n  git add .\n  git commit -m 'sync spark settings' || true\ndone\n"
+	if err := os.WriteFile(path, []byte(content), 0755); err != nil {
+		return err
+	}
+	return nil
 }
 
 func exportSyncZip(target string, paths []string) error {

@@ -38,6 +38,8 @@ var (
 	fileSearchMu    sync.Mutex
 	fileSearchStop  context.CancelFunc
 	quickLookActive bool
+	previewPage     int
+	previewScale    int
 	inActionMode    bool
 	debounceTimer   *time.Timer
 	iconCache       = make(map[string]*gdkpixbuf.Pixbuf)
@@ -53,6 +55,7 @@ var (
 	spotifyStatus   *gtk.Label
 	spotifyList     *gtk.ListBox
 	inSpotifyMode   bool
+	playerMode      modules.PlayerKind
 	mainBox         *gtk.Box
 	isClearing      bool
 )
@@ -264,11 +267,53 @@ func main() {
 		case gdk.KEY_Shift_L, gdk.KEY_Shift_R:
 			quickLookActive = !quickLookActive
 			if quickLookActive {
+				previewPage = 1
+				if previewScale == 0 {
+					previewScale = 360
+				}
 				updatePreview(listBox.SelectedRow())
 			} else {
 				hidePreview()
 			}
 			return true
+		case gdk.KEY_Page_Down, gdk.KEY_Right:
+			if quickLookActive {
+				if previewPage < 999 {
+					previewPage++
+				}
+				updatePreview(listBox.SelectedRow())
+				return true
+			}
+		case gdk.KEY_Page_Up, gdk.KEY_Left:
+			if quickLookActive {
+				if previewPage > 1 {
+					previewPage--
+				}
+				updatePreview(listBox.SelectedRow())
+				return true
+			}
+		case gdk.KEY_plus, gdk.KEY_KP_Add, gdk.KEY_equal:
+			if quickLookActive {
+				if previewScale == 0 {
+					previewScale = 360
+				}
+				if previewScale < 720 {
+					previewScale += 60
+				}
+				updatePreview(listBox.SelectedRow())
+				return true
+			}
+		case gdk.KEY_minus, gdk.KEY_KP_Subtract:
+			if quickLookActive {
+				if previewScale == 0 {
+					previewScale = 360
+				}
+				if previewScale > 180 {
+					previewScale -= 60
+				}
+				updatePreview(listBox.SelectedRow())
+				return true
+			}
 		}
 		return false
 	})
@@ -297,7 +342,11 @@ func main() {
 func updateResults(query string) {
 	version := atomic.AddUint64(&searchVersion, 1)
 	clearResultRows()
-	hidePreview()
+	if quickLookActive {
+		cancelPreviewLoad()
+	} else {
+		hidePreview()
+	}
 
 	if query == "" {
 		currentResults = nil
@@ -308,7 +357,11 @@ func updateResults(query string) {
 
 	// Check for Spotify mode
 	if modules.IsSpotifyQuery(query) {
-		showSpotifyView()
+		showPlayerView(modules.PlayerSpotify)
+		return
+	}
+	if modules.IsYouTubePlayerQuery(query) {
+		showPlayerView(modules.PlayerYouTube)
 		return
 	}
 	hideSpotifyView()
@@ -535,13 +588,28 @@ func setResults(results []modules.Result) {
 }
 
 func updatePreview(row *gtk.ListBoxRow) {
-	if isClearing || inSpotifyMode || row == nil {
+	if isClearing {
+		return
+	}
+	if inSpotifyMode {
+		hidePreview()
+		return
+	}
+	if row == nil {
+		if quickLookActive {
+			cancelPreviewLoad()
+			return
+		}
 		hidePreview()
 		return
 	}
 
 	idx := row.Index()
 	if idx < 0 || idx >= len(currentResults) {
+		if quickLookActive {
+			cancelPreviewLoad()
+			return
+		}
 		hidePreview()
 		return
 	}
@@ -550,13 +618,17 @@ func updatePreview(row *gtk.ListBoxRow) {
 
 	if r.Type == "file" {
 		version := atomic.AddUint64(&previewVersion, 1)
-		previewImage.Hide()
-		previewImage.Clear()
-		previewLabel.SetText("Loading preview...")
-		previewLabel.Show()
-		previewBox.Show()
+		page := previewPage
+		scale := previewScale
+		if page < 1 {
+			page = 1
+		}
+		if scale == 0 {
+			scale = 360
+		}
+		showPreviewLoading("Loading preview... page " + stringIntLocal(page) + " zoom " + stringIntLocal(scale))
 		go func(res modules.Result, v uint64) {
-			imagePath := modules.GetPreviewImage(res)
+			imagePath := modules.GetPreviewImageAt(res, page, scale)
 			preview := ""
 			if imagePath == "" {
 				preview = modules.GetPreview(res)
@@ -567,27 +639,15 @@ func updatePreview(row *gtk.ListBoxRow) {
 				}
 				if imagePath != "" {
 					if pb, err := gdkpixbuf.NewPixbufFromFileAtScale(imagePath, 220, 180, true); err == nil {
-						previewLabel.Hide()
-						previewLabel.SetText("")
-						previewImage.SetFromPixbuf(pb)
-						previewImage.Show()
-						previewBox.Show()
+						showPreviewPixbuf(pb)
 						return
 					}
 				}
 				if preview == "" {
-					previewLabel.Hide()
-					previewLabel.SetText("")
-					previewImage.Hide()
-					previewImage.Clear()
-					previewBox.Hide()
+					showPreviewText("No preview available")
 					return
 				}
-				previewImage.Hide()
-				previewImage.Clear()
-				previewLabel.SetText(preview)
-				previewLabel.Show()
-				previewBox.Show()
+				showPreviewText(preview)
 			})
 		}(r, version)
 		return
@@ -596,22 +656,14 @@ func updatePreview(row *gtk.ListBoxRow) {
 	imagePath := modules.GetPreviewImage(r)
 	if imagePath != "" {
 		if pb, err := gdkpixbuf.NewPixbufFromFileAtScale(imagePath, 220, 180, true); err == nil {
-			previewLabel.Hide()
-			previewLabel.SetText("")
-			previewImage.SetFromPixbuf(pb)
-			previewImage.Show()
-			previewBox.Show()
+			showPreviewPixbuf(pb)
 			return
 		}
 	}
 
 	if r.PreviewImageURL != "" {
 		version := atomic.AddUint64(&previewVersion, 1)
-		previewImage.Hide()
-		previewImage.Clear()
-		previewLabel.SetText(r.Preview)
-		previewLabel.Show()
-		previewBox.Show()
+		showPreviewLoading(r.Preview)
 		go func(imageURL string, v uint64) {
 			path := modules.CacheYouTubeThumbnail(imageURL)
 			if path == "" {
@@ -622,11 +674,7 @@ func updatePreview(row *gtk.ListBoxRow) {
 					return
 				}
 				if pb, err := gdkpixbuf.NewPixbufFromFileAtScale(path, 220, 180, true); err == nil {
-					previewLabel.Hide()
-					previewLabel.SetText("")
-					previewImage.SetFromPixbuf(pb)
-					previewImage.Show()
-					previewBox.Show()
+					showPreviewPixbuf(pb)
 				}
 			})
 		}(r.PreviewImageURL, version)
@@ -635,11 +683,7 @@ func updatePreview(row *gtk.ListBoxRow) {
 
 	if r.Type == "clipboard" && r.Data != "" {
 		version := atomic.AddUint64(&previewVersion, 1)
-		previewImage.Hide()
-		previewImage.Clear()
-		previewLabel.SetText(r.Title)
-		previewLabel.Show()
-		previewBox.Show()
+		showPreviewLoading(r.Title)
 		go func(res modules.Result, v uint64) {
 			path := modules.GetClipboardPreviewImage(res)
 			if path == "" {
@@ -650,11 +694,7 @@ func updatePreview(row *gtk.ListBoxRow) {
 					return
 				}
 				if pb, err := gdkpixbuf.NewPixbufFromFileAtScale(path, 220, 180, true); err == nil {
-					previewLabel.Hide()
-					previewLabel.SetText("")
-					previewImage.SetFromPixbuf(pb)
-					previewImage.Show()
-					previewBox.Show()
+					showPreviewPixbuf(pb)
 				}
 			})
 		}(r, version)
@@ -663,24 +703,66 @@ func updatePreview(row *gtk.ListBoxRow) {
 
 	preview := modules.GetPreview(r)
 	if preview == "" {
+		if quickLookActive {
+			showPreviewText("No preview available")
+			return
+		}
 		hidePreview()
 		return
 	}
 
-	previewImage.Hide()
-	previewImage.Clear()
-	previewLabel.SetText(preview)
-	previewLabel.Show()
-	previewBox.Show()
+	showPreviewText(preview)
 }
 
 func hidePreview() {
+	cancelPreviewLoad()
+	clearPreviewContent()
+	previewBox.Hide()
+}
+
+func cancelPreviewLoad() {
 	atomic.AddUint64(&previewVersion, 1)
+}
+
+func clearPreviewContent() {
 	previewLabel.Hide()
 	previewLabel.SetText("")
 	previewImage.Hide()
 	previewImage.Clear()
-	previewBox.Hide()
+}
+
+func showPreviewLoading(text string) {
+	if previewBox.Visible() && (previewImage.Visible() || previewLabel.Visible()) {
+		return
+	}
+	if !previewBox.Visible() {
+		previewBox.Show()
+	}
+	previewLabel.SetText(text)
+	previewLabel.Show()
+	if !previewImage.Visible() {
+		previewImage.Clear()
+	}
+}
+
+func showPreviewText(text string) {
+	if !previewBox.Visible() {
+		previewBox.Show()
+	}
+	previewImage.Hide()
+	previewImage.Clear()
+	previewLabel.SetText(text)
+	previewLabel.Show()
+}
+
+func showPreviewPixbuf(pb *gdkpixbuf.Pixbuf) {
+	if !previewBox.Visible() {
+		previewBox.Show()
+	}
+	previewImage.SetFromPixbuf(pb)
+	previewImage.Show()
+	previewLabel.Hide()
+	previewLabel.SetText("")
 }
 
 func createResultRow(r modules.Result) *gtk.ListBoxRow {
@@ -1074,7 +1156,7 @@ func createSpotifyView() {
 	prevBtn.SetName("spotify-control")
 	prevBtn.SetLabel("⏮")
 	prevBtn.Connect("clicked", func() {
-		exec.Command("playerctl", "previous").Run()
+		modules.PlayerControls(playerMode)[2].Action()
 		glib.TimeoutAdd(300, func() bool { refreshSpotifyInfo(); return false })
 	})
 
@@ -1082,7 +1164,7 @@ func createSpotifyView() {
 	playBtn.SetName("spotify-control")
 	playBtn.SetLabel("⏯")
 	playBtn.Connect("clicked", func() {
-		exec.Command("playerctl", "play-pause").Run()
+		modules.PlayerControls(playerMode)[0].Action()
 		glib.TimeoutAdd(300, func() bool { refreshSpotifyInfo(); return false })
 	})
 
@@ -1090,7 +1172,7 @@ func createSpotifyView() {
 	nextBtn.SetName("spotify-control")
 	nextBtn.SetLabel("⏭")
 	nextBtn.Connect("clicked", func() {
-		exec.Command("playerctl", "next").Run()
+		modules.PlayerControls(playerMode)[1].Action()
 		glib.TimeoutAdd(500, func() bool { refreshSpotifyInfo(); return false })
 	})
 
@@ -1110,7 +1192,7 @@ func createSpotifyView() {
 	spotifyList.SetSelectionMode(gtk.SelectionSingle)
 
 	// Add control options
-	for _, ctrl := range modules.SpotifyControls() {
+	for _, ctrl := range modules.PlayerControls(playerMode) {
 		row := createSpotifyControlRow(ctrl)
 		spotifyList.Add(row)
 		row.ShowAll()
@@ -1118,7 +1200,7 @@ func createSpotifyView() {
 
 	spotifyList.Connect("row-activated", func(_ *gtk.ListBox, row *gtk.ListBoxRow) {
 		idx := row.Index()
-		ctrls := modules.SpotifyControls()
+		ctrls := modules.PlayerControls(playerMode)
 		if idx >= 0 && idx < len(ctrls) {
 			ctrls[idx].Action()
 			glib.TimeoutAdd(300, func() bool { refreshSpotifyInfo(); return false })
@@ -1167,9 +1249,15 @@ func createSpotifyControlRow(r modules.Result) *gtk.ListBoxRow {
 }
 
 func showSpotifyView() {
+	showPlayerView(modules.PlayerSpotify)
+}
+
+func showPlayerView(kind modules.PlayerKind) {
+	playerMode = kind
 	inSpotifyMode = true
 	resultsScroll.Hide()
 	hidePreview()
+	refreshPlayerControls()
 
 	refreshSpotifyInfo()
 
@@ -1183,18 +1271,43 @@ func showSpotifyView() {
 	}
 }
 
+func refreshPlayerControls() {
+	if spotifyList == nil {
+		return
+	}
+	for {
+		row := spotifyList.RowAtIndex(0)
+		if row == nil {
+			break
+		}
+		spotifyList.Remove(row)
+	}
+	for _, ctrl := range modules.PlayerControls(playerMode) {
+		row := createSpotifyControlRow(ctrl)
+		spotifyList.Add(row)
+		row.ShowAll()
+	}
+}
+
 func hideSpotifyView() {
 	inSpotifyMode = false
 	spotifyView.Hide()
 }
 
 func refreshSpotifyInfo() {
-	info := modules.GetSpotifyInfo()
+	info := modules.GetPlayerInfo(playerMode)
 	if info == nil {
-		spotifyTitle.SetText("No player detected")
+		if playerMode == modules.PlayerYouTube {
+			spotifyTitle.SetText("No YouTube player detected")
+			spotifyStatus.SetText("Open YouTube in browser")
+		} else {
+			spotifyTitle.SetText("No Spotify player detected")
+			spotifyStatus.SetText("Start Spotify")
+		}
 		spotifyArtist.SetText("")
 		spotifyAlbum.SetText("")
-		spotifyStatus.SetText("Start Spotify or another player")
+		spotifyArtSmall.Clear()
+		spotifyArtBig.Clear()
 		return
 	}
 
@@ -1383,7 +1496,7 @@ func stringIntLocal(n int) string {
 func showEmailWindow(toValue, subjectValue, bodyValue string) {
 	window := gtk.NewWindow(gtk.WindowToplevel)
 	window.SetTitle("Spark Email")
-	window.SetDefaultSize(520, 240)
+	window.SetDefaultSize(620, 320)
 
 	box := gtk.NewBox(gtk.OrientationVertical, 10)
 	box.SetMarginStart(16)
@@ -1400,25 +1513,60 @@ func showEmailWindow(toValue, subjectValue, bodyValue string) {
 	bodyEntry := gtk.NewEntry()
 	bodyEntry.SetPlaceholderText("Body")
 	bodyEntry.SetText(bodyValue)
+	attachmentsEntry := gtk.NewEntry()
+	attachmentsEntry.SetPlaceholderText("Attachments, separated by |")
 
+	buttons := gtk.NewBox(gtk.OrientationHorizontal, 8)
+	bufferBtn := gtk.NewButtonWithLabel("Attach Buffer")
+	bufferBtn.Connect("clicked", func() {
+		attachmentsEntry.SetText(strings.Join(modules.FileBuffer(), "|"))
+	})
+	chooseBtn := gtk.NewButtonWithLabel("Choose File")
+	chooseBtn.Connect("clicked", func() {
+		go func() {
+			if path := choosePath(false); path != "" {
+				glib.IdleAdd(func() {
+					current := strings.TrimSpace(attachmentsEntry.Text())
+					if current != "" {
+						current += "|"
+					}
+					attachmentsEntry.SetText(current + path)
+				})
+			}
+		}()
+	})
 	send := gtk.NewButtonWithLabel("Send")
 	send.Connect("clicked", func() {
 		to := toEntry.Text()
 		subject := subjectEntry.Text()
 		body := bodyEntry.Text()
-		link := "mailto:" + url.QueryEscape(to) + "?subject=" + url.QueryEscape(subject) + "&body=" + url.QueryEscape(body)
-		exec.Command("xdg-open", link).Start()
+		modules.SendEmailFull(to, subject, body, splitPaths(attachmentsEntry.Text()))
 		gtk.MainQuit()
 	})
+	buttons.PackStart(bufferBtn, false, false, 0)
+	buttons.PackStart(chooseBtn, false, false, 0)
+	buttons.PackEnd(send, false, false, 0)
 
 	box.PackStart(toEntry, false, false, 0)
 	box.PackStart(subjectEntry, false, false, 0)
 	box.PackStart(bodyEntry, false, false, 0)
-	box.PackStart(send, false, false, 0)
+	box.PackStart(attachmentsEntry, false, false, 0)
+	box.PackStart(buttons, false, false, 0)
 	window.Add(box)
 	window.Connect("destroy", func() { gtk.MainQuit() })
 	window.ShowAll()
 	toEntry.GrabFocus()
+}
+
+func splitPaths(raw string) []string {
+	var out []string
+	for _, part := range strings.FieldsFunc(raw, func(r rune) bool { return r == '|' || r == '\n' }) {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
 }
 
 func showFileOpWindow(op, sourceValue, targetValue string) {
@@ -1454,6 +1602,17 @@ func showFileOpWindow(op, sourceValue, targetValue string) {
 	downloadsBtn.Connect("clicked", func() {
 		targetEntry.SetText(filepath.Join(os.Getenv("HOME"), "Downloads"))
 	})
+	chooseBtn := gtk.NewButtonWithLabel("Choose")
+	chooseBtn.Connect("clicked", func() {
+		go func() {
+			if path := choosePath(opEntry.Text() != "rename"); path != "" {
+				glib.IdleAdd(func() {
+					targetEntry.SetText(path)
+					crumb.SetText(fileOpBreadcrumb(path))
+				})
+			}
+		}()
+	})
 	cancelBtn := gtk.NewButtonWithLabel("Cancel")
 	cancelBtn.Connect("clicked", func() { gtk.MainQuit() })
 	runBtn := gtk.NewButtonWithLabel("Run")
@@ -1464,6 +1623,7 @@ func showFileOpWindow(op, sourceValue, targetValue string) {
 
 	buttons.PackStart(homeBtn, false, false, 0)
 	buttons.PackStart(downloadsBtn, false, false, 0)
+	buttons.PackStart(chooseBtn, false, false, 0)
 	buttons.PackEnd(runBtn, false, false, 0)
 	buttons.PackEnd(cancelBtn, false, false, 0)
 
@@ -1489,4 +1649,28 @@ func fileOpBreadcrumb(path string) string {
 		parts = append([]string{"..."}, parts[len(parts)-3:]...)
 	}
 	return strings.Join(parts, " / ")
+}
+
+func choosePath(directory bool) string {
+	if _, err := exec.LookPath("zenity"); err == nil {
+		args := []string{"--file-selection"}
+		if directory {
+			args = append(args, "--directory")
+		}
+		out, err := exec.Command("zenity", args...).Output()
+		if err == nil {
+			return strings.TrimSpace(string(out))
+		}
+	}
+	if _, err := exec.LookPath("kdialog"); err == nil {
+		args := []string{"--getopenfilename"}
+		if directory {
+			args = []string{"--getexistingdirectory"}
+		}
+		out, err := exec.Command("kdialog", args...).Output()
+		if err == nil {
+			return strings.TrimSpace(string(out))
+		}
+	}
+	return ""
 }

@@ -58,13 +58,13 @@ func SystemSearch(query string) []Result {
 
 func systemCommands() []systemCommand {
 	return []systemCommand{
-		{[]string{"lock", "screensaver", "screen saver"}, "Lock Screen", "Lock session", "system-lock-screen", false, hasLocker, "Install swaylock, hyprlock, gtklock, or loginctl", lockScreen},
-		{[]string{"sleep", "suspend"}, "Sleep", "Suspend system", "system-suspend", true, hasSystemctl, "systemctl not available", func() { exec.Command("systemctl", "suspend").Start() }},
-		{[]string{"hibernate"}, "Hibernate", "Hibernate system", "system-suspend-hibernate", true, hasSystemctl, "systemctl not available", func() { exec.Command("systemctl", "hibernate").Start() }},
-		{[]string{"restart", "reboot"}, "Restart", "Restart system", "system-reboot", true, hasSystemctl, "systemctl not available", func() { exec.Command("systemctl", "reboot").Start() }},
-		{[]string{"shutdown", "poweroff", "power off"}, "Shutdown", "Power off system", "system-shutdown", true, hasSystemctl, "systemctl not available", func() { exec.Command("systemctl", "poweroff").Start() }},
-		{[]string{"logout", "log out", "exit session"}, "Logout", "Terminate current user session", "system-log-out", true, hasLoginctl, "loginctl not available", logout},
-		{[]string{"trash", "empty trash", "clear trash"}, "Empty Trash", "Delete files from user trash", "user-trash", true, hasTrashBackend, "Install gio or kioclient6", emptyTrash},
+		{[]string{"lock", "screensaver", "screen saver"}, "Lock Screen", "Lock session", "system-lock-screen", false, hasLocker, lockerReason(), lockScreen},
+		{[]string{"sleep", "suspend"}, "Sleep", "Suspend system", "system-suspend", true, hasSystemctl, systemctlReason(), func() { exec.Command("systemctl", "suspend").Start() }},
+		{[]string{"hibernate"}, "Hibernate", "Hibernate system", "system-suspend-hibernate", true, hasSystemctl, systemctlReason(), func() { exec.Command("systemctl", "hibernate").Start() }},
+		{[]string{"restart", "reboot"}, "Restart", "Restart system", "system-reboot", true, hasSystemctl, systemctlReason(), func() { exec.Command("systemctl", "reboot").Start() }},
+		{[]string{"shutdown", "poweroff", "power off"}, "Shutdown", "Power off system", "system-shutdown", true, hasSystemctl, systemctlReason(), func() { exec.Command("systemctl", "poweroff").Start() }},
+		{[]string{"logout", "log out", "exit session"}, "Logout", "Terminate current user session", "system-log-out", true, hasLoginctl, loginctlReason(), logout},
+		{[]string{"trash", "empty trash", "clear trash"}, "Empty Trash", "Delete files from user trash", "user-trash", true, hasTrashBackend, "Install gio or kioclient6; session " + sessionSummary(), emptyTrash},
 	}
 }
 
@@ -82,6 +82,31 @@ func hasLocker() bool {
 
 func hasTrashBackend() bool {
 	return hasCommand("gio") || hasCommand("kioclient6")
+}
+
+func sessionSummary() string {
+	parts := []string{}
+	for _, key := range []string{"XDG_SESSION_TYPE", "XDG_CURRENT_DESKTOP", "DESKTOP_SESSION", "WAYLAND_DISPLAY", "DISPLAY"} {
+		if value := os.Getenv(key); value != "" {
+			parts = append(parts, key+"="+value)
+		}
+	}
+	if len(parts) == 0 {
+		return "unknown"
+	}
+	return strings.Join(parts, " ")
+}
+
+func lockerReason() string {
+	return "Install swaylock, hyprlock, gtklock, or loginctl; session " + sessionSummary()
+}
+
+func systemctlReason() string {
+	return "systemctl not available; session " + sessionSummary()
+}
+
+func loginctlReason() string {
+	return "loginctl not available; XDG_SESSION_ID=" + os.Getenv("XDG_SESSION_ID")
 }
 
 func lockScreen() {
