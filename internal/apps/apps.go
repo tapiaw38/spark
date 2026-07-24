@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/tapiaw38/spark/internal/history"
@@ -145,14 +146,7 @@ func QuickSearch(apps []App, query string) []App {
 		}
 	}
 
-	// Sort by score descending (simple bubble, small N)
-	for i := 0; i < len(results)-1; i++ {
-		for j := i + 1; j < len(results); j++ {
-			if results[j].score > results[i].score {
-				results[i], results[j] = results[j], results[i]
-			}
-		}
-	}
+	sort.SliceStable(results, func(i, j int) bool { return results[i].score > results[j].score })
 
 	// Limit to 6
 	if len(results) > 6 {
@@ -187,14 +181,7 @@ func Search(apps []App, query string) []App {
 		}
 	}
 
-	// Sort by score descending
-	for i := 0; i < len(results)-1; i++ {
-		for j := i + 1; j < len(results); j++ {
-			if results[j].score > results[i].score {
-				results[i], results[j] = results[j], results[i]
-			}
-		}
-	}
+	sort.SliceStable(results, func(i, j int) bool { return results[i].score > results[j].score })
 
 	out := make([]App, len(results))
 	for i, r := range results {

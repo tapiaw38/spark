@@ -193,7 +193,7 @@ func importSyncZip(source, home string) error {
 
 	for _, file := range reader.File {
 		target := filepath.Clean(filepath.Join(home, file.Name))
-		if !strings.HasPrefix(target, home) {
+		if target != home && !strings.HasPrefix(target, home+string(os.PathSeparator)) {
 			continue
 		}
 		if file.FileInfo().IsDir() {

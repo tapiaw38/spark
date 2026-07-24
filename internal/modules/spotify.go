@@ -26,11 +26,6 @@ const (
 	PlayerYouTube PlayerKind = "youtube"
 )
 
-// GetSpotifyInfo returns current playback information
-func GetSpotifyInfo() *SpotifyInfo {
-	return GetPlayerInfo(PlayerSpotify)
-}
-
 func GetPlayerInfo(kind PlayerKind) *SpotifyInfo {
 	player := mediaPlayer(kind)
 	if player == "" {
@@ -127,35 +122,6 @@ func PlayerControls(kind PlayerKind) []Result {
 		{Type: "media-control", Title: "Previous", Desc: label, Icon: "media-skip-backward", Action: playerAction(kind, "previous")},
 		{Type: "media-control", Title: "Volume Up", Desc: "+10%", Icon: "audio-volume-high", Action: playerAction(kind, "volume", "0.1+")},
 		{Type: "media-control", Title: "Volume Down", Desc: "-10%", Icon: "audio-volume-low", Action: playerAction(kind, "volume", "0.1-")},
-	}
-}
-
-func playerForQuickControls(q string) (PlayerKind, string, bool) {
-	switch {
-	case strings.HasPrefix(q, "yp "):
-		return PlayerYouTube, strings.TrimSpace(strings.TrimPrefix(q, "yp ")), true
-	case strings.HasPrefix(q, "youtube player "):
-		return PlayerYouTube, strings.TrimSpace(strings.TrimPrefix(q, "youtube player ")), true
-	default:
-		return PlayerSpotify, q, false
-	}
-}
-
-func YouTubePlayerControls(query string) []Result {
-	q := strings.ToLower(strings.TrimSpace(query))
-	if q != "yp play" && q != "yp pause" && q != "yp next" && q != "yp prev" && q != "yp previous" {
-		return nil
-	}
-	_, action, _ := playerForQuickControls(q)
-	switch action {
-	case "play", "pause":
-		return []Result{{Type: "youtube-player", Title: "YouTube Play/Pause", Icon: "media-playback-start", Action: playerAction(PlayerYouTube, "play-pause")}}
-	case "next":
-		return []Result{{Type: "youtube-player", Title: "YouTube Next", Icon: "media-skip-forward", Action: playerAction(PlayerYouTube, "next")}}
-	case "prev", "previous":
-		return []Result{{Type: "youtube-player", Title: "YouTube Previous", Icon: "media-skip-backward", Action: playerAction(PlayerYouTube, "previous")}}
-	default:
-		return nil
 	}
 }
 

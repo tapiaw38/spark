@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -110,67 +111,30 @@ func SetupHotkey(sparkPath string) error {
 		return os.WriteFile(bindPath, []byte(bindLine+"\n"), 0644)
 	}
 
-	content := string(data)
 	var newLines []string
 	found := false
 
 	// Remove old spark bindings, add new one
-	for _, line := range splitLines(content) {
-		if containsSparkBind(line) {
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.Contains(line, "spark") {
 			if !found {
 				newLines = append(newLines, bindLine)
 				found = true
 			}
-			// Skip old spark bind
-		} else {
-			newLines = append(newLines, line)
+			continue
 		}
+		newLines = append(newLines, line)
 	}
 
 	if !found {
 		newLines = append(newLines, bindLine)
 	}
 
-	return os.WriteFile(bindPath, []byte(joinLines(newLines)), 0644)
-}
-
-func splitLines(s string) []string {
-	var lines []string
-	start := 0
-	for i := 0; i < len(s); i++ {
-		if s[i] == '\n' {
-			lines = append(lines, s[start:i])
-			start = i + 1
-		}
+	out := strings.Join(newLines, "\n")
+	if !strings.HasSuffix(out, "\n") {
+		out += "\n"
 	}
-	if start < len(s) {
-		lines = append(lines, s[start:])
-	}
-	return lines
-}
-
-func joinLines(lines []string) string {
-	result := ""
-	for i, line := range lines {
-		result += line
-		if i < len(lines)-1 {
-			result += "\n"
-		}
-	}
-	if len(result) > 0 && result[len(result)-1] != '\n' {
-		result += "\n"
-	}
-	return result
-}
-
-func containsSparkBind(line string) bool {
-	// Check if line is a spark binding
-	for i := 0; i < len(line); i++ {
-		if i+5 <= len(line) && line[i:i+5] == "spark" {
-			return true
-		}
-	}
-	return false
+	return os.WriteFile(bindPath, []byte(out), 0644)
 }
 
 // GetCSS generates CSS from config

@@ -150,8 +150,5 @@ func splitEmailBody(body string) (string, string, string) {
 	}
 	to := parts[0]
 	subject := strings.TrimSpace(strings.TrimPrefix(body, to))
-	if !strings.Contains(to, "@") {
-		return to, subject, ""
-	}
 	return to, subject, ""
 }

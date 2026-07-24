@@ -120,10 +120,13 @@ func localDict(word string) string {
 func onlineDict(word string) string {
 	client := http.Client{Timeout: 1 * time.Second}
 	resp, err := client.Get("https://api.dictionaryapi.dev/api/v2/entries/en/" + word)
-	if err != nil || resp.StatusCode != 200 {
+	if err != nil {
 		return ""
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return ""
+	}
 
 	var data []struct {
 		Meanings []struct {
