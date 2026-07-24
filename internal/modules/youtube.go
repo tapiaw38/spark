@@ -165,8 +165,8 @@ func CacheYouTubeThumbnail(thumbnailURL string) string {
 		return ""
 	}
 
-	cacheDir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "youtube")
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+	cacheDir := cacheSubdir("youtube")
+	if cacheDir == "" {
 		return ""
 	}
 

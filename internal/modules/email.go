@@ -93,26 +93,14 @@ func SendEmailFull(to, subject, mailBody string, attachments []string) {
 	}
 	if len(attachments) == 0 && mailBody != "" {
 		link := "mailto:" + url.QueryEscape(to) + "?subject=" + url.QueryEscape(subject) + "&body=" + url.QueryEscape(mailBody)
-		if err := exec.Command("xdg-open", link).Start(); err != nil {
-			SetStatus(false, "Email failed: "+err.Error())
-		} else {
-			SetStatus(true, "Email compose opened")
-		}
+		startEmail(exec.Command("xdg-open", link), "Email failed", "Email compose opened")
 		return
 	}
-	if err := exec.Command("xdg-email", args...).Start(); err != nil {
-		SetStatus(false, "Email failed: "+err.Error())
-	} else {
-		SetStatus(true, "Email compose opened")
-	}
+	startEmail(exec.Command("xdg-email", args...), "Email failed", "Email compose opened")
 }
 
 func EmailFile(path string) {
-	if err := exec.Command("xdg-email", "--attach", path).Start(); err != nil {
-		SetStatus(false, "Email file failed: "+err.Error())
-	} else {
-		SetStatus(true, "Email compose opened with attachment")
-	}
+	startEmail(exec.Command("xdg-email", "--attach", path), "Email file failed", "Email compose opened with attachment")
 }
 
 func EmailFiles(paths []string) {
@@ -123,11 +111,15 @@ func EmailFiles(paths []string) {
 		}
 		args = append(args, "--attach", path)
 	}
-	if err := exec.Command("xdg-email", args...).Start(); err != nil {
-		SetStatus(false, "Email buffer failed: "+err.Error())
-	} else {
-		SetStatus(true, "Email compose opened with buffer")
+	startEmail(exec.Command("xdg-email", args...), "Email buffer failed", "Email compose opened with buffer")
+}
+
+func startEmail(cmd *exec.Cmd, failMsg, okMsg string) {
+	if err := cmd.Start(); err != nil {
+		SetStatus(false, failMsg+": "+err.Error())
+		return
 	}
+	SetStatus(true, okMsg)
 }
 
 func splitEmailBody(body string) (string, string, string) {

@@ -5,7 +5,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os/exec"
 	"strconv"
 )
 
@@ -28,9 +27,7 @@ func CalcSearch(query string) []Result {
 		Desc:  "Copy to clipboard",
 		Icon:  "accessories-calculator",
 		Action: func() {
-			// ponytail: wl-copy for Wayland clipboard
-			cmd := exec.Command("wl-copy", resultStr)
-			cmd.Start()
+			copyToClipboard(resultStr)
 		},
 	}}
 }

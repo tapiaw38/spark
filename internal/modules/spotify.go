@@ -127,8 +127,10 @@ func PlayerControls(kind PlayerKind) []Result {
 
 // cacheAlbumArt downloads and caches album art, returns local path
 func cacheAlbumArt(url string) string {
-	cacheDir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "art")
-	os.MkdirAll(cacheDir, 0755)
+	cacheDir := cacheSubdir("art")
+	if cacheDir == "" {
+		return ""
+	}
 
 	// Use URL hash as filename
 	hash := simpleHash(url)

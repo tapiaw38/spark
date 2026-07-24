@@ -39,7 +39,7 @@ func DictionarySearch(query string) []Result {
 			Desc:  cached,
 			Icon:  "accessories-dictionary",
 			Action: func() {
-				exec.Command("wl-copy", cached).Run()
+				copyToClipboard(cached)
 			},
 		}}
 	}
@@ -57,7 +57,7 @@ func DictionarySearch(query string) []Result {
 			Desc:  def,
 			Icon:  "accessories-dictionary",
 			Action: func() {
-				exec.Command("wl-copy", def).Run()
+				copyToClipboard(def)
 			},
 		}}
 	}

@@ -88,7 +88,7 @@ func parseSpellOutput(word, cmdName, lang string) *Result {
 				Title:  word + " is spelled correctly",
 				Desc:   "Copy word",
 				Icon:   "accessories-dictionary",
-				Action: func() { exec.Command("wl-copy", word).Run() },
+				Action: func() { copyToClipboard(word) },
 			}
 		}
 		if strings.HasPrefix(line, "&") || strings.HasPrefix(line, "#") {
@@ -105,7 +105,7 @@ func parseSpellOutput(word, cmdName, lang string) *Result {
 				Title:  title,
 				Desc:   desc,
 				Icon:   "accessories-dictionary",
-				Action: func() { exec.Command("wl-copy", copyText).Run() },
+				Action: func() { copyToClipboard(copyText) },
 			}
 		}
 	}

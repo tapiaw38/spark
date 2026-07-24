@@ -216,8 +216,8 @@ func previewPDFImageAt(path string, page, scale int) string {
 	if scale < 120 {
 		scale = 360
 	}
-	cacheDir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "pdf-preview")
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+	cacheDir := cacheSubdir("pdf-preview")
+	if cacheDir == "" {
 		return ""
 	}
 	base := filepath.Join(cacheDir, simpleHash(path)+"-p"+strconv.Itoa(page)+"-s"+strconv.Itoa(scale))
@@ -233,8 +233,8 @@ func previewPDFImageAt(path string, page, scale int) string {
 }
 
 func previewOfficePDF(path string) string {
-	cacheDir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "office-preview")
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+	cacheDir := cacheSubdir("office-preview")
+	if cacheDir == "" {
 		return ""
 	}
 	target := filepath.Join(cacheDir, simpleHash(path)+".pdf")

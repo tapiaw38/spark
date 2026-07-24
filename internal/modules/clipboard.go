@@ -10,6 +10,12 @@ import (
 	"strings"
 )
 
+// copyToClipboard writes text to the Wayland clipboard.
+// ponytail: single point — add xclip/X11 fallback here if needed
+func copyToClipboard(text string) {
+	exec.Command("wl-copy", text).Run()
+}
+
 // ClipboardSearch searches clipboard history
 // ponytail: relies on cliphist (common Wayland clipboard manager)
 // Install: yay -S cliphist
@@ -188,8 +194,8 @@ func cacheClipboardImage(id string) string {
 	default:
 		return ""
 	}
-	dir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "clipboard")
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	dir := cacheSubdir("clipboard")
+	if dir == "" {
 		return ""
 	}
 	path := filepath.Join(dir, simpleHash(id)+ext)
@@ -207,8 +213,8 @@ func colorSwatch(color string) string {
 	if err != nil || len(raw) != 3 {
 		return ""
 	}
-	dir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "swatches")
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	dir := cacheSubdir("swatches")
+	if dir == "" {
 		return ""
 	}
 	path := filepath.Join(dir, strings.TrimPrefix(color, "#")+".ppm")

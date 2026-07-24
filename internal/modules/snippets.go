@@ -75,9 +75,7 @@ func SnippetSearch(query string) []Result {
 				Icon:  "edit-paste",
 				Action: func() {
 					content := expandSnippet(snippet.Content)
-					// Copy to clipboard and paste
-					cmd := exec.Command("wl-copy", content)
-					cmd.Run()
+					copyToClipboard(content)
 					// Simulate paste with wtype
 					if _, err := exec.LookPath("wtype"); err == nil {
 						exec.Command("wtype", "-M", "ctrl", "v", "-m", "ctrl").Run()
