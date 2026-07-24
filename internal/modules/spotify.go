@@ -67,10 +67,6 @@ func spotifyPlayer() string {
 	return mediaPlayer(PlayerSpotify)
 }
 
-func youtubePlayer() string {
-	return mediaPlayer(PlayerYouTube)
-}
-
 func mediaPlayer(kind PlayerKind) string {
 	out, err := exec.Command("playerctl", "-l").Output()
 	if err != nil {
@@ -106,10 +102,6 @@ func playerctlMedia(player string, args ...string) *exec.Cmd {
 }
 
 func playerctlSpotify(player string, args ...string) *exec.Cmd {
-	return playerctlMedia(player, args...)
-}
-
-func playerctlYouTube(player string, args ...string) *exec.Cmd {
 	return playerctlMedia(player, args...)
 }
 
@@ -165,23 +157,6 @@ func YouTubePlayerControls(query string) []Result {
 	default:
 		return nil
 	}
-}
-
-func oldSpotifyPlayer() string {
-	out, err := exec.Command("playerctl", "-l").Output()
-	if err != nil {
-		return ""
-	}
-	for _, line := range strings.Split(string(out), "\n") {
-		player := strings.TrimSpace(line)
-		if player == "" {
-			continue
-		}
-		if strings.Contains(strings.ToLower(player), "spotify") {
-			return player
-		}
-	}
-	return ""
 }
 
 // cacheAlbumArt downloads and caches album art, returns local path

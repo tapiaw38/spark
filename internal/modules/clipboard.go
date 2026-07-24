@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -214,12 +215,9 @@ func colorSwatch(color string) string {
 	if _, err := os.Stat(path); err == nil {
 		return path
 	}
-	var b strings.Builder
-	b.WriteString("P3\n64 64\n255\n")
-	for i := 0; i < 64*64; i++ {
-		b.WriteString(stringInt(int(raw[0])) + " " + stringInt(int(raw[1])) + " " + stringInt(int(raw[2])) + "\n")
-	}
-	if os.WriteFile(path, []byte(b.String()), 0644) != nil {
+	pixel := strconv.Itoa(int(raw[0])) + " " + strconv.Itoa(int(raw[1])) + " " + strconv.Itoa(int(raw[2])) + "\n"
+	ppm := "P3\n64 64\n255\n" + strings.Repeat(pixel, 64*64)
+	if os.WriteFile(path, []byte(ppm), 0644) != nil {
 		return ""
 	}
 	return path

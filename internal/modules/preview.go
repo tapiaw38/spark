@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -205,10 +206,6 @@ func previewPDF(path string) string {
 	return content
 }
 
-func previewPDFImage(path string) string {
-	return previewPDFImageAt(path, 1, 360)
-}
-
 func previewPDFImageAt(path string, page, scale int) string {
 	if _, err := exec.LookPath("pdftoppm"); err != nil {
 		return ""
@@ -223,12 +220,12 @@ func previewPDFImageAt(path string, page, scale int) string {
 	if err := os.MkdirAll(cacheDir, 0755); err != nil {
 		return ""
 	}
-	base := filepath.Join(cacheDir, simpleHash(path)+"-p"+stringInt(page)+"-s"+stringInt(scale))
+	base := filepath.Join(cacheDir, simpleHash(path)+"-p"+strconv.Itoa(page)+"-s"+strconv.Itoa(scale))
 	png := base + ".png"
 	if _, err := os.Stat(png); err == nil {
 		return png
 	}
-	exec.Command("pdftoppm", "-png", "-singlefile", "-f", stringInt(page), "-l", stringInt(page), "-scale-to", stringInt(scale), path, base).Run()
+	exec.Command("pdftoppm", "-png", "-singlefile", "-f", strconv.Itoa(page), "-l", strconv.Itoa(page), "-scale-to", strconv.Itoa(scale), path, base).Run()
 	if _, err := os.Stat(png); err == nil {
 		return png
 	}

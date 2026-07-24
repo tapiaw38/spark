@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/tapiaw38/spark/internal/history"
@@ -45,7 +46,7 @@ func StatsSearch(query string) []Result {
 		{
 			Type:  "stats",
 			Title: "Open Stats Graph",
-			Desc:  stringInt(total) + " total launches",
+			Desc:  strconv.Itoa(total) + " total launches",
 			Icon:  "utilities-system-monitor",
 			Action: func() {
 				if exe, err := os.Executable(); err == nil {
@@ -56,7 +57,7 @@ func StatsSearch(query string) []Result {
 		{
 			Type:   "stats",
 			Title:  "Total App Launches",
-			Desc:   stringInt(total),
+			Desc:   strconv.Itoa(total),
 			Icon:   "utilities-system-monitor",
 			Action: func() {},
 		},
@@ -65,7 +66,7 @@ func StatsSearch(query string) []Result {
 		results = append(results, Result{
 			Type:   "stats",
 			Title:  stat.name,
-			Desc:   statBar(stat.count, stats[0].count) + " " + stringInt(stat.count) + " launches",
+			Desc:   statBar(stat.count, stats[0].count) + " " + strconv.Itoa(stat.count) + " launches",
 			Icon:   "utilities-system-monitor",
 			Action: func() {},
 		})
@@ -85,16 +86,4 @@ func statBar(count, max int) string {
 		width = 1
 	}
 	return strings.Repeat("#", width)
-}
-
-func stringInt(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	var digits []byte
-	for n > 0 {
-		digits = append([]byte{byte('0' + n%10)}, digits...)
-		n /= 10
-	}
-	return string(digits)
 }

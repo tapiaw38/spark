@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -106,7 +107,7 @@ func MusicQueueSearch(query string) []Result {
 		{
 			Type:  "music",
 			Title: "Play Queue",
-			Desc:  stringInt(len(queue)) + " tracks",
+			Desc:  strconv.Itoa(len(queue)) + " tracks",
 			Icon:  "media-playback-start",
 			Action: func() {
 				playMusicQueue()
@@ -115,7 +116,7 @@ func MusicQueueSearch(query string) []Result {
 		{
 			Type:  "music",
 			Title: "Play Queue with mpv",
-			Desc:  stringInt(len(queue)) + " tracks",
+			Desc:  strconv.Itoa(len(queue)) + " tracks",
 			Icon:  "media-playback-start",
 			Action: func() {
 				playMusicQueueWith("mpv")
@@ -124,7 +125,7 @@ func MusicQueueSearch(query string) []Result {
 		{
 			Type:     "music",
 			Title:    "Clear Queue",
-			Desc:     stringInt(len(queue)) + " tracks",
+			Desc:     strconv.Itoa(len(queue)) + " tracks",
 			Icon:     "edit-clear",
 			KeepOpen: true,
 			Action: func() {
