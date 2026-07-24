@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // SpotifyInfo contains current playback info
@@ -17,6 +18,14 @@ type SpotifyInfo struct {
 	Status  string // Playing, Paused, Stopped
 	ArtURL  string
 	ArtPath string // Local cached path
+}
+
+type playerMeta struct {
+	name   string
+	title  string
+	artist string
+	url    string
+	status string
 }
 
 type PlayerKind string
@@ -54,6 +63,31 @@ func GetPlayerInfo(kind PlayerKind) *SpotifyInfo {
 		Status: strings.TrimSpace(string(status)),
 		ArtURL: strings.TrimSpace(string(artURL)),
 	}
+	if kind == PlayerYouTube {
+		mediaURL := playerMetadata(player, "xesam:url")
+		if !isYouTubeVideoURL(mediaURL) {
+			if video := browserCurrentYouTubeVideo(player); video.URL != "" {
+				info.Title = video.Title
+				if info.Title == "" {
+					info.Title = strings.TrimSpace(string(title))
+				}
+				if info.Title == "" {
+					info.Title = "YouTube video"
+				}
+				info.Artist = "Firefox"
+				if isChromeLikePlayer(player) {
+					info.Artist = "Chrome"
+				}
+				info.Album = video.URL
+				info.ArtURL = youtubePlayerThumbnailURL(video.URL)
+			} else {
+				info.Title = "YouTube player"
+				info.Artist = player
+				info.Album = ""
+				info.ArtURL = ""
+			}
+		}
+	}
 
 	// Cache album art locally
 	if info.ArtURL != "" {
@@ -72,32 +106,144 @@ func youtubePlayer() string {
 }
 
 func mediaPlayer(kind PlayerKind) string {
+	players := playerMetas()
+	var fallback string
+	for _, meta := range players {
+		lower := strings.ToLower(meta.name)
+		switch kind {
+		case PlayerSpotify:
+			if strings.Contains(lower, "spotify") {
+				return meta.name
+			}
+		case PlayerYouTube:
+			if isYouTubeMeta(meta) {
+				return meta.name
+			}
+			if strings.Contains(lower, "youtube") {
+				return meta.name
+			}
+			if isBrowserPlayer(meta.name) {
+				if video := browserCurrentYouTubeVideo(meta.name); video.URL != "" {
+					return meta.name
+				}
+			}
+			if fallback == "" && strings.EqualFold(meta.status, "Playing") &&
+				isBrowserPlayer(meta.name) {
+				fallback = meta.name
+			}
+		}
+	}
+	return fallback
+}
+
+func playerMetas() []playerMeta {
 	out, err := exec.Command("playerctl", "-l").Output()
 	if err != nil {
-		return ""
+		return nil
 	}
-	var fallback string
+	var players []playerMeta
 	for _, line := range strings.Split(string(out), "\n") {
 		player := strings.TrimSpace(line)
 		if player == "" {
 			continue
 		}
-		lower := strings.ToLower(player)
-		switch kind {
-		case PlayerSpotify:
-			if strings.Contains(lower, "spotify") {
-				return player
+		players = append(players, playerMeta{
+			name:   player,
+			title:  playerMetadata(player, "title"),
+			artist: playerMetadata(player, "artist"),
+			url:    playerMetadata(player, "xesam:url"),
+			status: playerStatus(player),
+		})
+	}
+	return players
+}
+
+func playerMetadata(player, key string) string {
+	out, err := playerctlMedia(player, "metadata", key).Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
+func playerStatus(player string) string {
+	out, err := playerctlMedia(player, "status").Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
+func isYouTubeMeta(meta playerMeta) bool {
+	url := strings.ToLower(meta.url)
+	haystack := strings.ToLower(meta.name + " " + meta.title + " " + meta.artist)
+	if isYouTubeVideoURL(url) {
+		return true
+	}
+	if strings.EqualFold(meta.status, "Playing") && strings.Contains(url, "youtube.com") {
+		return true
+	}
+	return strings.Contains(haystack, "youtube") && !strings.EqualFold(meta.status, "Stopped")
+}
+
+func isYouTubeVideoURL(raw string) bool {
+	url := strings.ToLower(raw)
+	return strings.Contains(url, "youtu.be") ||
+		strings.Contains(url, "youtube.com/watch") ||
+		strings.Contains(url, "youtube.com/shorts") ||
+		strings.Contains(url, "youtube.com/embed")
+}
+
+func youtubePlayerThumbnailURL(raw string) string {
+	id := youtubeVideoID(raw)
+	if id == "" {
+		return ""
+	}
+	return "https://img.youtube.com/vi/" + id + "/hqdefault.jpg"
+}
+
+func youtubeVideoID(raw string) string {
+	for _, marker := range []string{"v=", "youtu.be/", "youtube.com/shorts/", "youtube.com/embed/"} {
+		if idx := strings.Index(raw, marker); idx >= 0 {
+			id := raw[idx+len(marker):]
+			for cut, r := range id {
+				if !(r == '-' || r == '_' || r >= '0' && r <= '9' || r >= 'A' && r <= 'Z' || r >= 'a' && r <= 'z') {
+					return id[:cut]
+				}
 			}
-		case PlayerYouTube:
-			if strings.Contains(lower, "youtube") {
-				return player
-			}
-			if fallback == "" && (strings.Contains(lower, "firefox") || strings.Contains(lower, "chrome") || strings.Contains(lower, "chromium") || strings.Contains(lower, "brave") || strings.Contains(lower, "vivaldi")) {
-				fallback = player
-			}
+			return id
 		}
 	}
-	return fallback
+	return ""
+}
+
+func browserCurrentYouTubeVideo(player string) firefoxVideo {
+	if isFirefoxPlayer(player) {
+		return firefoxCurrentYouTubeVideo()
+	}
+	if isChromeLikePlayer(player) {
+		return chromeCurrentYouTubeVideo()
+	}
+	if video := firefoxCurrentYouTubeVideo(); video.URL != "" {
+		return video
+	}
+	return chromeCurrentYouTubeVideo()
+}
+
+func isFirefoxPlayer(player string) bool {
+	return strings.Contains(strings.ToLower(player), "firefox")
+}
+
+func isChromeLikePlayer(player string) bool {
+	lower := strings.ToLower(player)
+	return strings.Contains(lower, "chrome") ||
+		strings.Contains(lower, "chromium") ||
+		strings.Contains(lower, "brave") ||
+		strings.Contains(lower, "vivaldi")
+}
+
+func isBrowserPlayer(player string) bool {
+	return isFirefoxPlayer(player) || isChromeLikePlayer(player)
 }
 
 func playerctlMedia(player string, args ...string) *exec.Cmd {
@@ -120,7 +266,12 @@ func playerAction(kind PlayerKind, args ...string) func() {
 			SetStatus(false, string(kind)+" player not detected")
 			return
 		}
-		playerctlMedia(player, args...).Run()
+		if err := playerctlMedia(player, args...).Run(); err != nil {
+			SetStatus(false, string(kind)+" command failed: "+strings.Join(args, " "))
+			time.AfterFunc(3*time.Second, func() { SetStatus(true, "") })
+			return
+		}
+		SetStatus(true, "")
 	}
 }
 
@@ -165,6 +316,64 @@ func YouTubePlayerControls(query string) []Result {
 	default:
 		return nil
 	}
+}
+
+func YouTubePlayerStatus(query string) []Result {
+	q := strings.ToLower(strings.TrimSpace(query))
+	if q != "yp status" && q != "youtube player status" {
+		return nil
+	}
+	metas := playerMetas()
+	if len(metas) == 0 {
+		return []Result{{
+			Type:   "youtube-player",
+			Title:  "No MPRIS players",
+			Desc:   "Open YouTube and run playerctl -l",
+			Icon:   "dialog-warning",
+			Action: func() {},
+		}}
+	}
+	var results []Result
+	selected := mediaPlayer(PlayerYouTube)
+	for _, meta := range metas {
+		m := meta
+		title := m.name
+		if m.name == selected {
+			title = "Selected: " + title
+		}
+		metaTitle := m.title
+		if isYouTubeMeta(m) && !isYouTubeVideoURL(m.url) {
+			if video := browserCurrentYouTubeVideo(m.name); video.URL != "" {
+				title := video.Title
+				if title == "" {
+					title = m.title
+				}
+				if title == "" {
+					title = "YouTube video"
+				}
+				metaTitle = title + " | " + video.URL
+			} else {
+				metaTitle = "YouTube tab detected; browser did not expose current video URL"
+			}
+		}
+		desc := strings.TrimSpace(m.status + " | " + metaTitle)
+		if m.url != "" {
+			desc += " | " + m.url
+		}
+		if desc == "" {
+			desc = "No title/url metadata"
+		}
+		results = append(results, Result{
+			Type:  "youtube-player",
+			Title: title,
+			Desc:  desc,
+			Icon:  "media-playback-start",
+			Action: func() {
+				copyText("player=" + m.name + "\ntitle=" + m.title + "\nartist=" + m.artist + "\nurl=" + m.url)
+			},
+		})
+	}
+	return results
 }
 
 func oldSpotifyPlayer() string {

@@ -383,6 +383,10 @@ func updateResults(query string) {
 		showPlayerView(modules.PlayerSpotify)
 		return
 	}
+	if results := modules.YouTubePlayerStatus(query); results != nil {
+		setResults(results)
+		return
+	}
 	if modules.IsYouTubePlayerQuery(query) {
 		showPlayerView(modules.PlayerYouTube)
 		return
