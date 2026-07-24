@@ -53,9 +53,11 @@ func main() {
 	listBox = gtk.NewListBox()
 	listBox.SetName("spark-results")
 	listBox.SetSelectionMode(gtk.SelectionSingle)
+	listBox.SetCanFocus(false)
 
 	// Scroll container for results - fixed height for 6 rows
 	resultsScroll = gtk.NewScrolledWindow(nil, nil)
+	resultsScroll.SetCanFocus(false)
 	resultsScroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
 	resultsScroll.SetSizeRequest(-1, 288) // 6 rows * 48px
 	resultsScroll.SetNoShowAll(true)

@@ -33,6 +33,7 @@ func preloadIcons() {
 func createResultRow(r modules.Result) *gtk.ListBoxRow {
 	row := gtk.NewListBoxRow()
 	row.SetName("spark-row")
+	row.SetCanFocus(false)
 
 	hbox := gtk.NewBox(gtk.OrientationHorizontal, 8)
 	hbox.SetMarginStart(8)

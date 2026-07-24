@@ -9,6 +9,13 @@ import (
 func loadCSS() {
 	css := gtk.NewCSSProvider()
 	css.LoadFromData(config.GetCSS() + `
+		#spark-results,
+		#spark-results row,
+		#spark-results row:focus,
+		#spark-results row:selected:focus {
+			outline: none;
+			box-shadow: none;
+		}
 		#spark-preview {
 			background: rgba(0, 0, 0, 0.3);
 			padding: 8px;

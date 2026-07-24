@@ -202,6 +202,7 @@ func setResults(results []modules.Result) {
 	if first := listBox.RowAtIndex(0); first != nil {
 		listBox.SelectRow(first)
 	}
+	searchEntry.GrabFocus()
 }
 
 func selectNext() {
@@ -287,7 +288,7 @@ func executeSelected() {
 		if idx < 0 {
 			return
 		}
-		ctrls := modules.SpotifyControls()
+		ctrls := modules.PlayerControls(playerMode)
 		if idx < len(ctrls) {
 			ctrls[idx].Action()
 			glib.TimeoutAdd(300, func() bool { refreshSpotifyInfo(); return false })
