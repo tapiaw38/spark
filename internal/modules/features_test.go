@@ -86,6 +86,13 @@ func TestKillSearchListsWithoutFilter(t *testing.T) {
 	}
 }
 
+func TestSSHSearchReturnsPrefixFeedback(t *testing.T) {
+	r := SSHSearch("ssh prod")
+	if len(r) == 0 {
+		t.Fatal("ssh prefix should return feedback instead of falling through")
+	}
+}
+
 func TestGenUUID(t *testing.T) {
 	re := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
 	for i := 0; i < 100; i++ {

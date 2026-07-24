@@ -16,7 +16,17 @@ func SSHSearch(query string) []Result {
 	filter := strings.TrimSpace(strings.TrimPrefix(q, "ssh"))
 
 	var out []Result
-	for _, host := range sshHosts() {
+	hosts, err := sshHosts()
+	if err != nil {
+		return []Result{{
+			Type:   "ssh",
+			Title:  "No SSH config",
+			Desc:   "Create ~/.ssh/config with Host entries",
+			Icon:   "dialog-warning",
+			Action: func() {},
+		}}
+	}
+	for _, host := range hosts {
 		if filter != "" && !strings.Contains(strings.ToLower(host), filter) {
 			continue
 		}
@@ -26,19 +36,28 @@ func SSHSearch(query string) []Result {
 			Title:  "SSH: " + host,
 			Desc:   "Connect in terminal",
 			Icon:   "utilities-terminal",
-			Action: func() { openTerminal("ssh " + host) },
+			Action: func() { openTerminal("ssh " + shellQuote(host)) },
 		})
 		if len(out) >= 8 {
 			break
 		}
 	}
+	if len(out) == 0 {
+		return []Result{{
+			Type:   "ssh",
+			Title:  "No SSH host: " + filter,
+			Desc:   "Add Host " + filter + " to ~/.ssh/config",
+			Icon:   "dialog-warning",
+			Action: func() {},
+		}}
+	}
 	return out
 }
 
-func sshHosts() []string {
+func sshHosts() ([]string, error) {
 	f, err := os.Open(filepath.Join(os.Getenv("HOME"), ".ssh", "config"))
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	defer f.Close()
 
@@ -56,5 +75,5 @@ func sshHosts() []string {
 			hosts = append(hosts, name)
 		}
 	}
-	return hosts
+	return hosts, nil
 }
