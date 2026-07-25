@@ -109,7 +109,7 @@ func doFileSearch(ctx context.Context, term string) []Result {
 
 	var cmd *exec.Cmd
 	if _, err := exec.LookPath("fd"); err == nil {
-		cmd = exec.CommandContext(ctx, "fd", "--max-results", "50", "--type", "f", term, os.Getenv("HOME"))
+		cmd = exec.CommandContext(ctx, "fd", "--type", "f", term, os.Getenv("HOME"))
 	} else {
 		cmd = exec.CommandContext(ctx, "find", os.Getenv("HOME"), "-maxdepth", "4", "-type", "f", "-iname", "*"+term+"*")
 	}
@@ -140,10 +140,6 @@ func doFileSearch(ctx context.Context, term string) []Result {
 				exec.Command("xdg-open", p).Start()
 			},
 		})
-
-		if len(results) >= 50 {
-			break
-		}
 	}
 
 	return results

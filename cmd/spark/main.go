@@ -24,28 +24,31 @@ import (
 )
 
 var (
-	allApps         []apps.App
-	currentResults  []modules.Result
-	listBox         *gtk.ListBox
-	resultsScroll   *gtk.ScrolledWindow
-	searchEntry     *gtk.Entry
-	previewBox      *gtk.Box
-	previewToolbar  *gtk.Box
-	previewMeta     *gtk.Label
-	previewImage    *gtk.Image
-	previewLabel    *gtk.Label
-	searchMu        sync.Mutex
-	searchVersion   uint64
-	previewVersion  uint64
-	fileSearchMu    sync.Mutex
-	fileSearchStop  context.CancelFunc
-	quickLookActive bool
-	previewPage     int
-	previewScale    int
-	inActionMode    bool
-	debounceTimer   *time.Timer
-	iconCache       = make(map[string]*gdkpixbuf.Pixbuf)
-	iconCacheMu     sync.RWMutex
+	allApps              []apps.App
+	currentResults       []modules.Result
+	listBox              *gtk.ListBox
+	resultsScroll        *gtk.ScrolledWindow
+	searchEntry          *gtk.Entry
+	previewBox           *gtk.Box
+	previewToolbar       *gtk.Box
+	previewMeta          *gtk.Label
+	previewImage         *gtk.Image
+	previewLabel         *gtk.Label
+	searchMu             sync.Mutex
+	searchVersion        uint64
+	previewVersion       uint64
+	resultsRenderVersion uint64
+	resultsPending       []modules.Result
+	resultsRenderedN     int
+	fileSearchMu         sync.Mutex
+	fileSearchStop       context.CancelFunc
+	quickLookActive      bool
+	previewPage          int
+	previewScale         int
+	inActionMode         bool
+	debounceTimer        *time.Timer
+	iconCache            = make(map[string]*gdkpixbuf.Pixbuf)
+	iconCacheMu          sync.RWMutex
 
 	// Spotify view widgets
 	spotifyView     *gtk.Box
@@ -129,9 +132,24 @@ func main() {
 	// Load apps
 	allApps = apps.Load()
 
-	// Preload icons for first 20 apps (background, before first keystroke)
+	// Preload icons for first 20 apps + the handful of file-type icons used
+	// by nav/file search (background, before first keystroke). Without this,
+	// the first folder browsed pays a cold GTK icon-theme lookup per
+	// distinct file type instead of hitting the cache.
 	go func() {
 		theme := gtk.IconThemeGetDefault()
+		fileIcons := []string{
+			"folder", "application-pdf", "x-office-document",
+			"x-office-spreadsheet", "image-x-generic", "audio-x-generic",
+			"video-x-generic", "text-x-script", "text-x-generic",
+		}
+		for _, name := range fileIcons {
+			if pb, err := theme.LoadIcon(name, config.Current.IconSize, gtk.IconLookupForceSize); err == nil {
+				iconCacheMu.Lock()
+				iconCache[name] = pb
+				iconCacheMu.Unlock()
+			}
+		}
 		for i, app := range allApps {
 			if i >= 20 {
 				break
@@ -186,6 +204,9 @@ func main() {
 	resultsScroll.SetSizeRequest(-1, 288) // 6 rows * 48px
 	resultsScroll.SetNoShowAll(true)
 	resultsScroll.Add(listBox)
+	resultsScroll.VAdjustment().Connect("value-changed", func() {
+		maybeLoadMoreResults()
+	})
 
 	// Preview pane - fixed size to prevent layout jumps
 	previewBox = gtk.NewBox(gtk.OrientationVertical, 8)
@@ -460,13 +481,31 @@ func updateResults(query string) {
 		return
 	}
 
-	if results := modules.NavigationSearch(query); results != nil {
-		setResults(results)
+	if modules.IsNavQuery(query) {
+		setResults(modules.NavigationLoading(query))
+		go func(q string, v uint64) {
+			results := modules.NavigationSearch(q)
+			glib.IdleAdd(func() {
+				if atomic.LoadUint64(&searchVersion) != v {
+					return
+				}
+				setResults(results)
+			})
+		}(query, version)
 		return
 	}
 
-	if results := modules.DestinationPickerSearch(query); results != nil {
-		setResults(results)
+	if modules.IsPickQuery(query) {
+		setResults(modules.NavigationLoading(query))
+		go func(q string, v uint64) {
+			results := modules.DestinationPickerSearch(q)
+			glib.IdleAdd(func() {
+				if atomic.LoadUint64(&searchVersion) != v {
+					return
+				}
+				setResults(results)
+			})
+		}(query, version)
 		return
 	}
 
@@ -632,23 +671,23 @@ func clearResultRows() {
 	isClearing = false
 }
 
+const (
+	resultBatchSize = 20
+	// resultsPageSize caps rows built eagerly. GtkListBox isn't virtualized
+	// like a GtkTreeView — every child is a real widget that costs layout
+	// time, so building thousands of rows for a huge folder still visibly
+	// slows things down even when spread across idle callbacks. The rest
+	// streams in lazily as the user scrolls near the bottom.
+	resultsPageSize = 60
+)
+
 func setResults(results []modules.Result) {
 	clearResultRows()
 	currentResults = results
+	resultsPending = results
+	resultsRenderedN = 0
 
-	maxScrollResults := 50
-	if len(currentResults) > maxScrollResults {
-		currentResults = currentResults[:maxScrollResults]
-	}
-
-	// Create rows
-	for _, r := range currentResults {
-		row := createResultRow(r)
-		listBox.Add(row)
-		row.ShowAll()
-	}
-
-	if len(currentResults) == 0 {
+	if len(results) == 0 {
 		resultsScroll.Hide()
 		return
 	}
@@ -656,8 +695,65 @@ func setResults(results []modules.Result) {
 	listBox.Show()
 	resultsScroll.Show()
 
-	if first := listBox.RowAtIndex(0); first != nil {
-		listBox.SelectRow(first)
+	v := atomic.AddUint64(&resultsRenderVersion, 1)
+	scheduleResultRendering(v)
+}
+
+// renderNextResultChunk builds the next resultBatchSize rows of
+// resultsPending. Returns false if nothing was left to render.
+func renderNextResultChunk() bool {
+	if resultsRenderedN >= len(resultsPending) {
+		return false
+	}
+	start := resultsRenderedN
+	end := start + resultBatchSize
+	if end > len(resultsPending) {
+		end = len(resultsPending)
+	}
+	for _, r := range resultsPending[start:end] {
+		row := createResultRow(r)
+		listBox.Add(row)
+		row.ShowAll()
+	}
+	resultsRenderedN = end
+
+	if start == 0 {
+		if first := listBox.RowAtIndex(0); first != nil {
+			listBox.SelectRow(first)
+		}
+	}
+	return true
+}
+
+// scheduleResultRendering builds rows in batches via glib.IdleAdd, so the
+// GTK loop gets to process input/paint between batches, up to
+// resultsPageSize (mirrors KIO's batched ListJob + KFileItemModel). Beyond
+// that it stops; maybeLoadMoreResults picks up the rest on scroll.
+func scheduleResultRendering(v uint64) {
+	if atomic.LoadUint64(&resultsRenderVersion) != v {
+		return
+	}
+	if !renderNextResultChunk() {
+		return
+	}
+	if resultsRenderedN < len(resultsPending) && resultsRenderedN < resultsPageSize {
+		glib.IdleAdd(func() { scheduleResultRendering(v) })
+	}
+}
+
+// maybeLoadMoreResults renders the next chunk when the results scrollbar
+// nears the bottom, so folders bigger than resultsPageSize keep loading
+// without building every row up front.
+func maybeLoadMoreResults() {
+	if resultsRenderedN >= len(resultsPending) || resultsScroll == nil {
+		return
+	}
+	adj := resultsScroll.VAdjustment()
+	if adj == nil {
+		return
+	}
+	if adj.Value()+adj.PageSize() >= adj.Upper()-80 {
+		renderNextResultChunk()
 	}
 }
 
@@ -973,9 +1069,14 @@ func setupFileDragSource(widget dragSourceWidget, r modules.Result) {
 	}
 	widget.DragSourceSet(gdk.Button1Mask, targets, gdk.ActionCopy)
 
-	if imagePath := modules.GetPreviewImage(r); imagePath != "" {
-		if pb, err := gdkpixbuf.NewPixbufFromFileAtScale(imagePath, 96, 96, true); err == nil {
-			widget.DragSourceSetIconPixbuf(pb)
+	// Only build a drag-icon thumbnail for plain images. PDF/docx preview
+	// generation shells out to pdftoppm/libreoffice per row, which froze
+	// the UI for a few seconds when entering folders with many such files.
+	if modules.IsImageFile(r.Title) {
+		if imagePath := modules.GetFilePath(r); imagePath != "" {
+			if pb, err := gdkpixbuf.NewPixbufFromFileAtScale(imagePath, 96, 96, true); err == nil {
+				widget.DragSourceSetIconPixbuf(pb)
+			}
 		}
 	}
 
@@ -1063,7 +1164,12 @@ func selectNext() {
 		return
 	}
 	idx := selected.Index()
-	if next := list.RowAtIndex(idx + 1); next != nil {
+	next := list.RowAtIndex(idx + 1)
+	if next == nil && list == listBox && resultsRenderedN < len(resultsPending) {
+		renderNextResultChunk()
+		next = list.RowAtIndex(idx + 1)
+	}
+	if next != nil {
 		list.SelectRow(next)
 		scrollToRow(next)
 	}
@@ -1754,6 +1860,7 @@ func showFileOpWindow(op, sourceValue, targetValue string) {
 	var refreshBrowser func(string)
 	var setCrumbs func(string)
 	var crumbWidgets []gtk.Widgetter
+	var browserGen uint64
 	setCrumbs = func(dir string) {
 		for _, child := range crumbWidgets {
 			crumbs.Remove(child)
@@ -1828,27 +1935,38 @@ func showFileOpWindow(op, sourceValue, targetValue string) {
 		if parent := filepath.Dir(currentDir); parent != currentDir {
 			browser.Add(fileOpBrowserRow("..", parent, true, targetEntry, refreshBrowser))
 		}
-		entries, err := os.ReadDir(currentDir)
-		if err != nil {
-			row := gtk.NewListBoxRow()
-			row.Add(gtk.NewLabel(err.Error()))
-			browser.Add(row)
-			browser.ShowAll()
-			return
-		}
-		count := 0
-		for _, entry := range entries {
-			if strings.HasPrefix(entry.Name(), ".") {
-				continue
-			}
-			path := filepath.Join(currentDir, entry.Name())
-			browser.Add(fileOpBrowserRow(entry.Name(), path, entry.IsDir(), targetEntry, refreshBrowser))
-			count++
-			if count >= 80 {
-				break
-			}
-		}
 		browser.ShowAll()
+
+		gen := atomic.AddUint64(&browserGen, 1)
+		dir = currentDir
+		go func() {
+			entries, err := os.ReadDir(dir)
+			glib.IdleAdd(func() {
+				if atomic.LoadUint64(&browserGen) != gen {
+					return
+				}
+				if err != nil {
+					row := gtk.NewListBoxRow()
+					row.Add(gtk.NewLabel(err.Error()))
+					browser.Add(row)
+					browser.ShowAll()
+					return
+				}
+				count := 0
+				for _, entry := range entries {
+					if strings.HasPrefix(entry.Name(), ".") {
+						continue
+					}
+					path := filepath.Join(dir, entry.Name())
+					browser.Add(fileOpBrowserRow(entry.Name(), path, entry.IsDir(), targetEntry, refreshBrowser))
+					count++
+					if count >= 80 {
+						break
+					}
+				}
+				browser.ShowAll()
+			})
+		}()
 	}
 
 	buttons := gtk.NewBox(gtk.OrientationHorizontal, 8)

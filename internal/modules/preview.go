@@ -152,6 +152,13 @@ func expandHome(path string) string {
 	return path
 }
 
+// IsImageFile reports whether name has a plain image extension (cheap check,
+// no subprocess) — used to decide if a drag icon can be built without
+// triggering an expensive PDF/office conversion.
+func IsImageFile(name string) bool {
+	return isImageFile(name)
+}
+
 func isImageFile(name string) bool {
 	switch strings.ToLower(filepath.Ext(name)) {
 	case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg":

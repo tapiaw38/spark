@@ -8,11 +8,27 @@ import (
 	"strings"
 )
 
+// IsNavQuery reports whether query is a nav/browse command.
+func IsNavQuery(query string) bool {
+	lower := strings.ToLower(strings.TrimSpace(query))
+	return lower == "nav" || lower == "browse" || strings.HasPrefix(lower, "nav ") || strings.HasPrefix(lower, "browse ")
+}
+
+// NavigationLoading returns a placeholder shown while NavigationSearch runs.
+func NavigationLoading(query string) []Result {
+	return []Result{{
+		Type:   "navigation",
+		Title:  "Loading...",
+		Icon:   "folder",
+		Action: func() {},
+	}}
+}
+
 // NavigationSearch browses directories inside Spark.
 func NavigationSearch(query string) []Result {
 	q := strings.TrimSpace(query)
 	lower := strings.ToLower(q)
-	if lower != "nav" && lower != "browse" && !strings.HasPrefix(lower, "nav ") && !strings.HasPrefix(lower, "browse ") {
+	if !IsNavQuery(query) {
 		return nil
 	}
 
@@ -32,10 +48,16 @@ func NavigationSearch(query string) []Result {
 }
 
 // DestinationPickerSearch selects folders for copy/move operations.
+// IsPickQuery reports whether query is a destination-picker command.
+func IsPickQuery(query string) bool {
+	lower := strings.ToLower(strings.TrimSpace(query))
+	return strings.HasPrefix(lower, "pick copy ") || strings.HasPrefix(lower, "pick move ")
+}
+
 func DestinationPickerSearch(query string) []Result {
 	q := strings.TrimSpace(query)
 	lower := strings.ToLower(q)
-	if !strings.HasPrefix(lower, "pick copy ") && !strings.HasPrefix(lower, "pick move ") {
+	if !IsPickQuery(query) {
 		return nil
 	}
 
@@ -168,9 +190,6 @@ func directoryResults(prefix, path, filter, op, source string) []Result {
 					exec.Command("xdg-open", filePath).Start()
 				},
 			})
-		}
-		if len(results) >= 50 {
-			break
 		}
 	}
 	return results
