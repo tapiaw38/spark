@@ -29,7 +29,7 @@ go build -buildvcs=false -o spark ./cmd/spark/
 
 ## Project Structure
 
-```
+```bash
 spark/
 ├── cmd/spark/main.go       # Entry point, GTK window, UI logic
 ├── internal/
@@ -65,57 +65,57 @@ spark/
 
 ## Features & Prefixes
 
-| Prefix | Feature | Example |
-|--------|---------|---------|
-| (none) | App search | `firefox` |
-| `>` | Shell command | `> htop` |
-| `;` | Snippet | `;email` |
-| `f` | File search | `f readme` |
-| `Tab` | File actions | select file, press `Tab` |
-| file op window | Visual file ops | Tab -> Rename/Copy/Move |
-| `nav` | Folder navigation | `nav ~/Downloads` |
-| `pick` | Destination picker | `pick copy source | ~/Downloads` |
-| `rename` | Rename file | `rename source | new-name` |
-| `copy` | Copy file | `copy source | target` |
-| `move` | Move file | `move source | target` |
-| `undo` | Undo last file operation | `undo` |
-| `status` | Last action/error | `status` |
-| `buffer` | File buffer | `buffer` |
-| `recent` | Recent documents | `recent invoice`, `recent app firefox` |
-| `large` | Large Type | `large 555-1234` |
-| `large all` | Large Type all monitors | `large all 555-1234` |
-| `help` | Help | `help` |
-| `contact` | Contacts | `contact Ada`, `contact carddav` |
-| `email` | Email composer + attachments | `email contact | Subject | Body` |
-| `stats` | Usage Stats | `stats` |
-| `sync` | Sync Settings | `sync`, `sync import ~/spark-settings.zip` |
-| `clip` | Clipboard | `clip` |
-| `define` | Dictionary | `define word` |
-| `spell` | Spelling | `spell recieve` |
-| `sp` | Spotify/Music | `sp` |
-| `yp` | YouTube player controls | `yp` |
-| `m` | Local music | `m song`, `m artists`, `m artist name`, `m albums`, `m genres` |
-| `mq` | Music queue | `mq`, play with mpv |
-| `g` | Google search | `g query` |
-| `yt` | YouTube videos | `yt video` |
-| `gh` | GitHub | `gh repo` |
-| `lock` | Lock screen | `lock` |
-| `shutdown` | Shutdown | `shutdown` |
-| `emoji` | Emoji picker | `emoji fire` |
-| `b64`/`b64d` | Base64 encode/decode | `b64 hello` |
-| `url`/`urld` | URL encode/decode | `url a b&c` |
-| `hash` | SHA-256 | `hash secret` |
-| `uuid` | Generate UUID v4 | `uuid` |
-| `epoch` | Unix time / date | `epoch`, `epoch 1700000000` |
-| (units) | Unit conversion | `100 km to mi`, `50f to c`, `5 gb to mb` |
-| `ssh` | SSH hosts from ~/.ssh/config | `ssh`, `ssh prod` |
-| `kill` | Kill process | `kill firefox` |
-| `screenshot`/`ss` | Screenshot (grim/slurp) | `ss` |
-| `w` | Windows or MangoWM workspaces | `w`, `w firefox`, `w 2` |
-| `timer` | Countdown → notification | `timer 5m` |
-| `wt` | Weather from wttr.in | `wt`, `wt Berlin` |
-| `pass` | Password store (pass) | `pass github` |
-| `bm` | Browser bookmarks | `bm docs` |
+| Prefix            | Feature                       | Example                                                        |
+| ----------------- | ----------------------------- | -------------------------------------------------------------- | ------------ | ----- |
+| (none)            | App search                    | `firefox`                                                      |
+| `>`               | Shell command                 | `> htop`                                                       |
+| `;`               | Snippet                       | `;email`                                                       |
+| `f`               | File search                   | `f readme`                                                     |
+| `Tab`             | File actions                  | select file, press `Tab`                                       |
+| file op window    | Visual file ops               | Tab -> Rename/Copy/Move                                        |
+| `nav`             | Folder navigation             | `nav ~/Downloads`                                              |
+| `pick`            | Destination picker            | `pick copy source                                              | ~/Downloads` |
+| `rename`          | Rename file                   | `rename source                                                 | new-name`    |
+| `copy`            | Copy file                     | `copy source                                                   | target`      |
+| `move`            | Move file                     | `move source                                                   | target`      |
+| `undo`            | Undo last file operation      | `undo`                                                         |
+| `status`          | Last action/error             | `status`                                                       |
+| `buffer`          | File buffer                   | `buffer`                                                       |
+| `recent`          | Recent documents              | `recent invoice`, `recent app firefox`                         |
+| `large`           | Large Type                    | `large 555-1234`                                               |
+| `large all`       | Large Type all monitors       | `large all 555-1234`                                           |
+| `help`            | Help                          | `help`                                                         |
+| `contact`         | Contacts                      | `contact Ada`, `contact carddav`                               |
+| `email`           | Email composer + attachments  | `email contact                                                 | Subject      | Body` |
+| `stats`           | Usage Stats                   | `stats`                                                        |
+| `sync`            | Sync Settings                 | `sync`, `sync import ~/spark-settings.zip`                     |
+| `clip`            | Clipboard                     | `clip`                                                         |
+| `define`          | Dictionary                    | `define word`                                                  |
+| `spell`           | Spelling                      | `spell recieve`                                                |
+| `sp`              | Spotify/Music                 | `sp`                                                           |
+| `yp`              | YouTube player controls       | `yp`                                                           |
+| `m`               | Local music                   | `m song`, `m artists`, `m artist name`, `m albums`, `m genres` |
+| `mq`              | Music queue                   | `mq`, play with mpv                                            |
+| `g`               | Google search                 | `g query`                                                      |
+| `yt`              | YouTube videos                | `yt video`                                                     |
+| `gh`              | GitHub                        | `gh repo`                                                      |
+| `lock`            | Lock screen                   | `lock`                                                         |
+| `shutdown`        | Shutdown                      | `shutdown`                                                     |
+| `emoji`           | Emoji picker                  | `emoji fire`                                                   |
+| `b64`/`b64d`      | Base64 encode/decode          | `b64 hello`                                                    |
+| `url`/`urld`      | URL encode/decode             | `url a b&c`                                                    |
+| `hash`            | SHA-256                       | `hash secret`                                                  |
+| `uuid`            | Generate UUID v4              | `uuid`                                                         |
+| `epoch`           | Unix time / date              | `epoch`, `epoch 1700000000`                                    |
+| (units)           | Unit conversion               | `100 km to mi`, `50f to c`, `5 gb to mb`                       |
+| `ssh`             | SSH hosts from ~/.ssh/config  | `ssh`, `ssh prod`                                              |
+| `kill`            | Kill process                  | `kill firefox`                                                 |
+| `screenshot`/`ss` | Screenshot (grim/slurp)       | `ss`                                                           |
+| `w`               | Windows or MangoWM workspaces | `w`, `w firefox`, `w 2`                                        |
+| `timer`           | Countdown → notification      | `timer 5m`                                                     |
+| `wt`              | Weather from wttr.in          | `wt`, `wt Berlin`                                              |
+| `pass`            | Password store (pass)         | `pass github`                                                  |
+| `bm`              | Browser bookmarks             | `bm docs`                                                      |
 
 Quick Look: press `Shift`; PDF/doc previews show page/zoom controls, and `PageUp/PageDown` plus `+/-` also work.
 File ops: Tab on a file, then Rename/Copy/Move opens a visual picker with breadcrumbs and folder browsing.
@@ -171,6 +171,7 @@ type Result struct {
 ### Spotify view
 
 Special UI in `cmd/spark/main.go`:
+
 - `createSpotifyView()` - Build layout
 - `showSpotifyView()` / `hideSpotifyView()` - Toggle
 - `refreshSpotifyInfo()` - Update track info
@@ -180,11 +181,13 @@ Uses `playerctl` for MPRIS control.
 ## Dependencies
 
 System packages (Arch):
+
 ```bash
 pacman -S gtk3 gtk-layer-shell playerctl yt-dlp aspell hunspell
 ```
 
 Go modules:
+
 ```bash
 go mod tidy
 ```
@@ -192,11 +195,13 @@ go mod tidy
 ## Debug
 
 Run directly to see GTK errors:
+
 ```bash
 ./spark 2>&1
 ```
 
 Test playerctl:
+
 ```bash
 playerctl metadata
 playerctl status
