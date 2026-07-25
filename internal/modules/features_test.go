@@ -93,6 +93,16 @@ func TestSSHSearchReturnsPrefixFeedback(t *testing.T) {
 	}
 }
 
+func TestWeatherTitleCase(t *testing.T) {
+	r := WeatherSearch("weather tinogasta")
+	if len(r) != 1 {
+		t.Fatal("expected weather result")
+	}
+	if r[0].Title != "Weather: Tinogasta" {
+		t.Fatalf("unexpected title: %q", r[0].Title)
+	}
+}
+
 func TestGenUUID(t *testing.T) {
 	re := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
 	for i := 0; i < 100; i++ {

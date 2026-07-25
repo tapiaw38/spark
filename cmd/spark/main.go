@@ -446,6 +446,20 @@ func updateResults(query string) {
 	}
 	fileSearchMu.Unlock()
 
+	if modules.IsWeatherQuery(query) {
+		setResults(modules.WeatherLoading(query))
+		go func(q string, v uint64) {
+			results := modules.WeatherSearchAsync(q)
+			glib.IdleAdd(func() {
+				if atomic.LoadUint64(&searchVersion) != v {
+					return
+				}
+				setResults(results)
+			})
+		}(query, version)
+		return
+	}
+
 	if results := modules.NavigationSearch(query); results != nil {
 		setResults(results)
 		return
