@@ -40,6 +40,7 @@ var (
 	resultsRenderVersion uint64
 	resultsPending       []modules.Result
 	resultsRenderedN     int
+	resultsLoadingMore   bool
 	fileSearchMu         sync.Mutex
 	fileSearchStop       context.CancelFunc
 	quickLookActive      bool
@@ -686,6 +687,7 @@ func setResults(results []modules.Result) {
 	currentResults = results
 	resultsPending = results
 	resultsRenderedN = 0
+	resultsLoadingMore = false
 
 	if len(results) == 0 {
 		resultsScroll.Hide()
@@ -745,15 +747,19 @@ func scheduleResultRendering(v uint64) {
 // nears the bottom, so folders bigger than resultsPageSize keep loading
 // without building every row up front.
 func maybeLoadMoreResults() {
-	if resultsRenderedN >= len(resultsPending) || resultsScroll == nil {
+	if resultsRenderedN >= len(resultsPending) || resultsScroll == nil || resultsLoadingMore {
 		return
 	}
 	adj := resultsScroll.VAdjustment()
 	if adj == nil {
 		return
 	}
-	if adj.Value()+adj.PageSize() >= adj.Upper()-80 {
-		renderNextResultChunk()
+	if adj.Value()+adj.PageSize() >= adj.Upper()-480 {
+		resultsLoadingMore = true
+		glib.IdleAdd(func() {
+			resultsLoadingMore = false
+			renderNextResultChunk()
+		})
 	}
 }
 
@@ -1053,6 +1059,7 @@ type dragSourceWidget interface {
 	DragSourceSet(gdk.ModifierType, []gtk.TargetEntry, gdk.DragAction)
 	DragSourceSetIconPixbuf(*gdkpixbuf.Pixbuf)
 	ConnectDragDataGet(func(context *gdk.DragContext, data *gtk.SelectionData, info, time uint)) glib.SignalHandle
+	ConnectDragBegin(func(context *gdk.DragContext)) glib.SignalHandle
 }
 
 func setupFileDragSource(widget dragSourceWidget, r modules.Result) {
@@ -1069,15 +1076,21 @@ func setupFileDragSource(widget dragSourceWidget, r modules.Result) {
 	}
 	widget.DragSourceSet(gdk.Button1Mask, targets, gdk.ActionCopy)
 
-	// Only build a drag-icon thumbnail for plain images. PDF/docx preview
-	// generation shells out to pdftoppm/libreoffice per row, which froze
-	// the UI for a few seconds when entering folders with many such files.
+	// Decode the drag-icon thumbnail lazily, only when a drag actually
+	// starts (and only for plain images — PDF/docx would shell out to
+	// pdftoppm/libreoffice). Doing this eagerly for every row, even
+	// off-screen ones never dragged, was decoding every image in the
+	// folder up front and stalling batches by hundreds of ms.
 	if modules.IsImageFile(r.Title) {
-		if imagePath := modules.GetFilePath(r); imagePath != "" {
-			if pb, err := gdkpixbuf.NewPixbufFromFileAtScale(imagePath, 96, 96, true); err == nil {
-				widget.DragSourceSetIconPixbuf(pb)
+		widget.ConnectDragBegin(func(context *gdk.DragContext) {
+			imagePath := modules.GetFilePath(r)
+			if imagePath == "" {
+				return
 			}
-		}
+			if pb, err := gdkpixbuf.NewPixbufFromFileAtScale(imagePath, 96, 96, true); err == nil {
+				gtk.DragSetIconPixbuf(context, pb, 0, 0)
+			}
+		})
 	}
 
 	widget.ConnectDragDataGet(func(_ *gdk.DragContext, data *gtk.SelectionData, info, _ uint) {
