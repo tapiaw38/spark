@@ -113,7 +113,7 @@ spark/
 | `screenshot`/`ss` | Screenshot (grim/slurp) | `ss` |
 | `w` | Windows or MangoWM workspaces | `w`, `w firefox`, `w 2` |
 | `timer` | Countdown → notification | `timer 5m` |
-| `weather` | Weather from wttr.in | `weather`, `weather Berlin` |
+| `wt` | Weather from wttr.in | `wt`, `wt Berlin` |
 | `pass` | Password store (pass) | `pass github` |
 | `bm` | Browser bookmarks | `bm docs` |
 

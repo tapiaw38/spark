@@ -30,6 +30,7 @@ func HelpSearch(query string) []Result {
 		helpResult("Dictionary", "define word / def word"),
 		helpResult("Spelling", "spell word / spelling word"),
 		helpResult("Music", "sp controls / m local song"),
+		helpResult("Weather", "wt city / weather city"),
 		helpResult("Shell", "> command"),
 	}
 }

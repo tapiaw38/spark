@@ -17,7 +17,7 @@ func WeatherSearch(query string) []Result {
 
 func IsWeatherQuery(query string) bool {
 	lower := strings.ToLower(strings.TrimSpace(query))
-	return lower == "weather" || strings.HasPrefix(lower, "weather ")
+	return lower == "weather" || strings.HasPrefix(lower, "weather ") || lower == "wt" || strings.HasPrefix(lower, "wt ")
 }
 
 func WeatherLoading(query string) []Result {
@@ -40,7 +40,7 @@ func WeatherSearchAsync(query string) []Result {
 }
 
 func weatherResult(query, desc string, copyOnEnter bool) []Result {
-	city := strings.TrimSpace(query[len("weather"):])
+	city := weatherCity(query)
 	displayCity := titleCity(city)
 
 	title := "Weather"
@@ -80,8 +80,25 @@ func weatherResult(query, desc string, copyOnEnter bool) []Result {
 }
 
 func weatherPage(query string) string {
-	city := strings.TrimSpace(query[len("weather"):])
+	city := weatherCity(query)
 	return "https://wttr.in/" + url.PathEscape(city)
+}
+
+func weatherCity(query string) string {
+	q := strings.TrimSpace(query)
+	lower := strings.ToLower(q)
+	switch {
+	case lower == "wt":
+		return ""
+	case strings.HasPrefix(lower, "wt "):
+		return strings.TrimSpace(q[2:])
+	case lower == "weather":
+		return ""
+	case strings.HasPrefix(lower, "weather "):
+		return strings.TrimSpace(q[len("weather"):])
+	default:
+		return ""
+	}
 }
 
 func titleCity(city string) string {

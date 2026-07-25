@@ -101,6 +101,10 @@ func TestWeatherTitleCase(t *testing.T) {
 	if r[0].Title != "Weather: Tinogasta" {
 		t.Fatalf("unexpected title: %q", r[0].Title)
 	}
+	r = WeatherSearch("wt tinogasta")
+	if len(r) != 1 || r[0].Title != "Weather: Tinogasta" {
+		t.Fatalf("unexpected wt result: %+v", r)
+	}
 }
 
 func TestGenUUID(t *testing.T) {
