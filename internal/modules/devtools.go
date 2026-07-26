@@ -70,7 +70,7 @@ func DevToolsSearch(query string) []Result {
 
 func devResult(label, value string) []Result {
 	return []Result{{
-		Type:    "devtool",
+		Type:    TypeDevtool,
 		Title:   value,
 		Desc:    label + " — copy to clipboard",
 		Icon:    "applications-utilities",

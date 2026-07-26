@@ -23,7 +23,7 @@ func SpellSearch(query string) []Result {
 	}
 
 	return []Result{{
-		Type:   "spell",
+		Type:   TypeSpell,
 		Title:  "Spell: " + word,
 		Desc:   "Install aspell or hunspell for spelling suggestions",
 		Icon:   "accessories-dictionary",
@@ -83,7 +83,7 @@ func parseSpellOutput(word, cmdName, lang string) *Result {
 		}
 		if line == "*" {
 			return &Result{
-				Type:   "spell",
+				Type:   TypeSpell,
 				Title:  word + " is spelled correctly",
 				Desc:   "Copy word",
 				Icon:   "accessories-dictionary",
@@ -100,7 +100,7 @@ func parseSpellOutput(word, cmdName, lang string) *Result {
 			}
 			desc := strings.Join(suggestions, ", ")
 			return &Result{
-				Type:   "spell",
+				Type:   TypeSpell,
 				Title:  title,
 				Desc:   desc,
 				Icon:   "accessories-dictionary",

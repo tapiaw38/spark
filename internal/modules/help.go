@@ -33,7 +33,7 @@ func HelpSearch(query string) []Result {
 
 func helpResult(title, desc string) Result {
 	return Result{
-		Type:   "help",
+		Type:   TypeHelp,
 		Title:  title,
 		Desc:   desc,
 		Icon:   "help-browser",

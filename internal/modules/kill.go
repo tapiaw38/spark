@@ -17,7 +17,7 @@ func KillSearch(query string) []Result {
 		proc, ok := procByPID(pid)
 		if !ok {
 			return []Result{{
-				Type:   "kill",
+				Type:   TypeKill,
 				Title:  "Process not found: " + pid,
 				Desc:   "It may have already exited",
 				Icon:   "dialog-warning",
@@ -32,7 +32,7 @@ func KillSearch(query string) []Result {
 	for _, p := range listProcs(strings.ToLower(name)) {
 		p := p
 		out = append(out, Result{
-			Type:          "kill",
+			Type:          TypeKill,
 			Title:         "Kill " + p.name + " (" + p.pid + ")",
 			Desc:          "Press Enter to confirm",
 			Icon:          "process-stop",
@@ -49,7 +49,7 @@ type procInfo struct{ pid, name string }
 
 func confirmKillResult(p procInfo) Result {
 	return Result{
-		Type:  "kill",
+		Type:  TypeKill,
 		Title: "Confirm Kill " + p.name + " (" + p.pid + ")",
 		Desc:  "Send SIGTERM",
 		Icon:  "dialog-warning",

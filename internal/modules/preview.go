@@ -15,15 +15,15 @@ func GetPreview(r Result) string {
 	}
 
 	switch r.Type {
-	case "file":
+	case TypeFile:
 		return previewFile(r.Title, r.Desc)
-	case "snippet":
+	case TypeSnippet:
 		return ""
-	case "clipboard":
-		return r.Title // Full clipboard content
-	case "dictionary":
+	case TypeClipboard:
+		return r.Title
+	case TypeDictionary:
 		return r.Desc
-	case "calc":
+	case TypeCalc:
 		return r.Title
 	default:
 		return ""
@@ -56,10 +56,10 @@ func GetPreviewImageAt(r Result, page, scale int) string {
 }
 
 func GetFilePath(r Result) string {
-	if r.Type != "file" && r.Type != "directory" {
+	if r.Type != TypeFile && r.Type != TypeDirectory {
 		return ""
 	}
-	if r.Type == "directory" && strings.HasPrefix(r.NavigateQuery, "nav ") {
+	if r.Type == TypeDirectory && strings.HasPrefix(r.NavigateQuery, "nav ") {
 		return expandHome(strings.TrimSpace(strings.TrimPrefix(r.NavigateQuery, "nav ")))
 	}
 	return filepath.Join(expandHome(r.Desc), r.Title)

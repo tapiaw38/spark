@@ -32,7 +32,7 @@ func SystemSearch(query string) []Result {
 				cmd := sc
 				if cmd.enabled != nil && !cmd.enabled() {
 					results = append(results, Result{
-						Type:   "system",
+						Type:   TypeSystem,
 						Title:  cmd.name + " unavailable",
 						Desc:   cmd.reason,
 						Icon:   "dialog-warning",
@@ -41,7 +41,7 @@ func SystemSearch(query string) []Result {
 					break
 				}
 				results = append(results, Result{
-					Type:    "system",
+					Type:    TypeSystem,
 					Title:   cmd.name,
 					Desc:    cmd.desc,
 					Icon:    cmd.icon,

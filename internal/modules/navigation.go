@@ -14,7 +14,7 @@ func IsNavQuery(query string) bool {
 
 func NavigationLoading(query string) []Result {
 	return []Result{{
-		Type:   "navigation",
+		Type:   TypeNavigation,
 		Title:  "Loading...",
 		Icon:   "folder",
 		Action: func() {},
@@ -102,7 +102,7 @@ func directoryResults(prefix, path, filter, op, source string) []Result {
 	info, err := os.Stat(path)
 	if err != nil {
 		return []Result{{
-			Type:   "navigation",
+			Type:   TypeNavigation,
 			Title:  "Folder Not Found",
 			Desc:   path,
 			Icon:   "dialog-error",
@@ -112,7 +112,7 @@ func directoryResults(prefix, path, filter, op, source string) []Result {
 	if !info.IsDir() {
 		dir := filepath.Dir(path)
 		return []Result{{
-			Type:  "file",
+			Type:  TypeFile,
 			Title: filepath.Base(path),
 			Desc:  shortenPath(dir),
 			Icon:  getFileIcon(path),
@@ -137,7 +137,7 @@ func directoryResults(prefix, path, filter, op, source string) []Result {
 	if op == "copy" || op == "move" {
 		dst := path
 		results = append(results, Result{
-			Type:    "file-op",
+			Type:    TypeFileOp,
 			Title:   operationTitle(op) + " Here",
 			Desc:    shortenPath(source) + " -> " + shortenPath(dst),
 			Icon:    operationIcon(op),
@@ -149,7 +149,7 @@ func directoryResults(prefix, path, filter, op, source string) []Result {
 	}
 
 	results = append(results, Result{
-		Type:          "directory",
+		Type:          TypeDirectory,
 		Title:         "..",
 		Desc:          shortenPath(filepath.Dir(path)),
 		Icon:          "go-up",
@@ -166,7 +166,7 @@ func directoryResults(prefix, path, filter, op, source string) []Result {
 		p := filepath.Join(path, entry.Name())
 		if entry.IsDir() {
 			results = append(results, Result{
-				Type:          "directory",
+				Type:          TypeDirectory,
 				Title:         entry.Name(),
 				Desc:          shortenPath(p),
 				Icon:          "folder",
@@ -176,7 +176,7 @@ func directoryResults(prefix, path, filter, op, source string) []Result {
 		} else {
 			filePath := p
 			results = append(results, Result{
-				Type:  "file",
+				Type:  TypeFile,
 				Title: entry.Name(),
 				Desc:  shortenPath(path),
 				Icon:  getFileIcon(entry.Name()),

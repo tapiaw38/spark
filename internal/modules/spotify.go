@@ -10,13 +10,35 @@ import (
 	"time"
 )
 
-type SpotifyInfo struct {
-	Title   string
-	Artist  string
-	Album   string
-	Status  string // Playing, Paused, Stopped
-	ArtURL  string
-	ArtPath string // Local cached path
+type PlaybackStatus string
+
+const (
+	StatusPlaying PlaybackStatus = "Playing"
+	StatusPaused  PlaybackStatus = "Paused"
+	StatusStopped PlaybackStatus = "Stopped"
+)
+
+func ParsePlaybackStatus(raw string) PlaybackStatus {
+	trimmed := strings.TrimSpace(raw)
+	switch strings.ToLower(trimmed) {
+	case "playing":
+		return StatusPlaying
+	case "paused":
+		return StatusPaused
+	case "stopped":
+		return StatusStopped
+	default:
+		return PlaybackStatus(trimmed)
+	}
+}
+
+type PlayerInfo struct {
+	Title        string
+	Artist       string
+	Album        string
+	Status       PlaybackStatus
+	ArtURL       string
+	ArtCachePath string
 }
 
 type playerMeta struct {
@@ -24,7 +46,7 @@ type playerMeta struct {
 	title  string
 	artist string
 	url    string
-	status string
+	status PlaybackStatus
 }
 
 type PlayerKind string
@@ -34,7 +56,7 @@ const (
 	PlayerYouTube PlayerKind = "youtube"
 )
 
-func GetPlayerInfo(kind PlayerKind) *SpotifyInfo {
+func GetPlayerInfo(kind PlayerKind) *PlayerInfo {
 	player := mediaPlayer(kind)
 	if player == "" {
 		return nil
@@ -50,11 +72,11 @@ func GetPlayerInfo(kind PlayerKind) *SpotifyInfo {
 	status, _ := playerctlMedia(player, "status").Output()
 	artURL, _ := playerctlMedia(player, "metadata", "mpris:artUrl").Output()
 
-	info := &SpotifyInfo{
+	info := &PlayerInfo{
 		Title:  strings.TrimSpace(string(title)),
 		Artist: strings.TrimSpace(string(artist)),
 		Album:  strings.TrimSpace(string(album)),
-		Status: strings.TrimSpace(string(status)),
+		Status: ParsePlaybackStatus(string(status)),
 		ArtURL: strings.TrimSpace(string(artURL)),
 	}
 	if kind == PlayerYouTube {
@@ -84,7 +106,7 @@ func GetPlayerInfo(kind PlayerKind) *SpotifyInfo {
 	}
 
 	if info.ArtURL != "" {
-		info.ArtPath = cacheAlbumArt(info.ArtURL)
+		info.ArtCachePath = cacheAlbumArt(info.ArtURL)
 	}
 
 	return info
@@ -112,7 +134,7 @@ func mediaPlayer(kind PlayerKind) string {
 					return meta.name
 				}
 			}
-			if fallback == "" && strings.EqualFold(meta.status, "Playing") &&
+			if fallback == "" && meta.status == StatusPlaying &&
 				isBrowserPlayer(meta.name) {
 				fallback = meta.name
 			}
@@ -151,12 +173,12 @@ func playerMetadata(player, key string) string {
 	return strings.TrimSpace(string(out))
 }
 
-func playerStatus(player string) string {
+func playerStatus(player string) PlaybackStatus {
 	out, err := playerctlMedia(player, "status").Output()
 	if err != nil {
 		return ""
 	}
-	return strings.TrimSpace(string(out))
+	return ParsePlaybackStatus(string(out))
 }
 
 func isYouTubeMeta(meta playerMeta) bool {
@@ -165,10 +187,10 @@ func isYouTubeMeta(meta playerMeta) bool {
 	if isYouTubeVideoURL(url) {
 		return true
 	}
-	if strings.EqualFold(meta.status, "Playing") && strings.Contains(url, "youtube.com") {
+	if meta.status == StatusPlaying && strings.Contains(url, "youtube.com") {
 		return true
 	}
-	return strings.Contains(haystack, "youtube") && !strings.EqualFold(meta.status, "Stopped")
+	return strings.Contains(haystack, "youtube") && meta.status != StatusStopped
 }
 
 func isYouTubeVideoURL(raw string) bool {
@@ -258,11 +280,11 @@ func PlayerControls(kind PlayerKind) []Result {
 		label = "YouTube"
 	}
 	return []Result{
-		{Type: "media-control", Title: "Play/Pause", Desc: label, Icon: "media-playback-start", Action: playerAction(kind, "play-pause")},
-		{Type: "media-control", Title: "Next", Desc: label, Icon: "media-skip-forward", Action: playerAction(kind, "next")},
-		{Type: "media-control", Title: "Previous", Desc: label, Icon: "media-skip-backward", Action: playerAction(kind, "previous")},
-		{Type: "media-control", Title: "Volume Up", Desc: "+10%", Icon: "audio-volume-high", Action: playerAction(kind, "volume", "0.1+")},
-		{Type: "media-control", Title: "Volume Down", Desc: "-10%", Icon: "audio-volume-low", Action: playerAction(kind, "volume", "0.1-")},
+		{Type: TypeMediaControl, Title: "Play/Pause", Desc: label, Icon: "media-playback-start", Action: playerAction(kind, "play-pause")},
+		{Type: TypeMediaControl, Title: "Next", Desc: label, Icon: "media-skip-forward", Action: playerAction(kind, "next")},
+		{Type: TypeMediaControl, Title: "Previous", Desc: label, Icon: "media-skip-backward", Action: playerAction(kind, "previous")},
+		{Type: TypeMediaControl, Title: "Volume Up", Desc: "+10%", Icon: "audio-volume-high", Action: playerAction(kind, "volume", "0.1+")},
+		{Type: TypeMediaControl, Title: "Volume Down", Desc: "-10%", Icon: "audio-volume-low", Action: playerAction(kind, "volume", "0.1-")},
 	}
 }
 
@@ -285,11 +307,11 @@ func YouTubePlayerControls(query string) []Result {
 	_, action, _ := playerForQuickControls(q)
 	switch action {
 	case "play", "pause":
-		return []Result{{Type: "youtube-player", Title: "YouTube Play/Pause", Icon: "media-playback-start", Action: playerAction(PlayerYouTube, "play-pause")}}
+		return []Result{{Type: TypeYouTubePlayer, Title: "YouTube Play/Pause", Icon: "media-playback-start", Action: playerAction(PlayerYouTube, "play-pause")}}
 	case "next":
-		return []Result{{Type: "youtube-player", Title: "YouTube Next", Icon: "media-skip-forward", Action: playerAction(PlayerYouTube, "next")}}
+		return []Result{{Type: TypeYouTubePlayer, Title: "YouTube Next", Icon: "media-skip-forward", Action: playerAction(PlayerYouTube, "next")}}
 	case "prev", "previous":
-		return []Result{{Type: "youtube-player", Title: "YouTube Previous", Icon: "media-skip-backward", Action: playerAction(PlayerYouTube, "previous")}}
+		return []Result{{Type: TypeYouTubePlayer, Title: "YouTube Previous", Icon: "media-skip-backward", Action: playerAction(PlayerYouTube, "previous")}}
 	default:
 		return nil
 	}
@@ -302,7 +324,7 @@ func YouTubePlayerStatus(query string) []Result {
 	metas := playerMetas()
 	if len(metas) == 0 {
 		return []Result{{
-			Type:   "youtube-player",
+			Type:   TypeYouTubePlayer,
 			Title:  "No MPRIS players",
 			Desc:   "Open YouTube and run playerctl -l",
 			Icon:   "dialog-warning",
@@ -332,7 +354,7 @@ func YouTubePlayerStatus(query string) []Result {
 				metaTitle = "YouTube tab detected; browser did not expose current video URL"
 			}
 		}
-		desc := strings.TrimSpace(m.status + " | " + metaTitle)
+		desc := strings.TrimSpace(string(m.status) + " | " + metaTitle)
 		if m.url != "" {
 			desc += " | " + m.url
 		}
@@ -340,7 +362,7 @@ func YouTubePlayerStatus(query string) []Result {
 			desc = "No title/url metadata"
 		}
 		results = append(results, Result{
-			Type:  "youtube-player",
+			Type:  TypeYouTubePlayer,
 			Title: title,
 			Desc:  desc,
 			Icon:  "media-playback-start",
@@ -429,7 +451,7 @@ func SpotifySearch(query string) []Result {
 		return nil
 	}
 	return []Result{{
-		Type:   "spotify",
+		Type:   TypeSpotify,
 		Title:  cmd.title,
 		Icon:   cmd.icon,
 		Action: playerAction(PlayerSpotify, cmd.arg),

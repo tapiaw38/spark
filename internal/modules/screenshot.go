@@ -19,21 +19,21 @@ func ScreenshotSearch(query string) []Result {
 
 	return []Result{
 		{
-			Type:   "screenshot",
+			Type:   TypeScreenshot,
 			Title:  "Screenshot: Full screen",
 			Desc:   "Save to ~/Pictures",
 			Icon:   "camera-photo",
 			Action: func() { grimTo(shotPath(), false) },
 		},
 		{
-			Type:   "screenshot",
+			Type:   TypeScreenshot,
 			Title:  "Screenshot: Select area",
 			Desc:   "grim + slurp, save to ~/Pictures",
 			Icon:   "camera-photo",
 			Action: func() { grimTo(shotPath(), true) },
 		},
 		{
-			Type:   "screenshot",
+			Type:   TypeScreenshot,
 			Title:  "Screenshot: Area → clipboard",
 			Desc:   "Copy region to clipboard",
 			Icon:   "camera-photo",

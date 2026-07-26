@@ -12,13 +12,13 @@ func SSHSearch(query string) []Result {
 	if !ok {
 		return nil
 	}
-	filter := strings.ToLower(arg) // hosts are matched case-insensitively
+	filter := strings.ToLower(arg)
 
 	var out []Result
 	hosts, err := sshHosts()
 	if err != nil {
 		return []Result{{
-			Type:   "ssh",
+			Type:   TypeSSH,
 			Title:  "No SSH config",
 			Desc:   "Create ~/.ssh/config with Host entries",
 			Icon:   "dialog-warning",
@@ -31,7 +31,7 @@ func SSHSearch(query string) []Result {
 		}
 		host := host
 		out = append(out, Result{
-			Type:   "ssh",
+			Type:   TypeSSH,
 			Title:  "SSH: " + host,
 			Desc:   "Connect in terminal",
 			Icon:   "utilities-terminal",
@@ -43,7 +43,7 @@ func SSHSearch(query string) []Result {
 	}
 	if len(out) == 0 {
 		return []Result{{
-			Type:   "ssh",
+			Type:   TypeSSH,
 			Title:  "No SSH host: " + filter,
 			Desc:   "Add Host " + filter + " to ~/.ssh/config",
 			Icon:   "dialog-warning",

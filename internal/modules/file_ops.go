@@ -29,7 +29,7 @@ func FileOperationSearch(query string) []Result {
 	}
 	if source == "" || target == "" {
 		return []Result{{
-			Type:   "file-op",
+			Type:   TypeFileOp,
 			Title:  operationTitle(op),
 			Desc:   "Use: " + op + " source | target",
 			Icon:   operationIcon(op),
@@ -46,7 +46,7 @@ func FileOperationSearch(query string) []Result {
 	dst := target
 
 	return []Result{{
-		Type:    "file-op",
+		Type:    TypeFileOp,
 		Title:   operationTitle(op),
 		Desc:    shortenPath(src) + " -> " + shortenPath(dst),
 		Icon:    operationIcon(op),
@@ -64,7 +64,7 @@ func UndoSearch(query string) []Result {
 	undo := currentFileUndo()
 	if undo == nil {
 		return []Result{{
-			Type:   "undo",
+			Type:   TypeUndo,
 			Title:  "Nothing to Undo",
 			Desc:   "File operations set undo state",
 			Icon:   "edit-undo",
@@ -72,7 +72,7 @@ func UndoSearch(query string) []Result {
 		}}
 	}
 	return []Result{{
-		Type:    "undo",
+		Type:    TypeUndo,
 		Title:   "Undo: " + undo.Title,
 		Desc:    "Confirm undo",
 		Icon:    "edit-undo",

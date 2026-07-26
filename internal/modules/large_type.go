@@ -12,7 +12,7 @@ func LargeTypeSearch(query string) []Result {
 	}
 	if text == "" {
 		return []Result{{
-			Type:   "large-type",
+			Type:   TypeLargeType,
 			Title:  "Large Type",
 			Desc:   "Type: large text",
 			Icon:   "preferences-desktop-font",
@@ -26,7 +26,7 @@ func LargeTypeSearch(query string) []Result {
 	}
 	return []Result{
 		{
-			Type:  "large-type",
+			Type:  TypeLargeType,
 			Title: "Show Large Type",
 			Desc:  text,
 			Icon:  "preferences-desktop-font",
@@ -41,7 +41,7 @@ func LargeTypeSearch(query string) []Result {
 			},
 		},
 		{
-			Type:  "large-type",
+			Type:  TypeLargeType,
 			Title: "Copy Text",
 			Desc:  text,
 			Icon:  "edit-copy",

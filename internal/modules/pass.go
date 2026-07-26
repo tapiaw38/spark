@@ -25,7 +25,7 @@ func PassSearch(query string) []Result {
 		}
 		entry := entry
 		out = append(out, Result{
-			Type:  "pass",
+			Type:  TypePass,
 			Title: "Pass: " + entry,
 			Desc:  "Copy password to clipboard",
 			Icon:  "dialog-password",

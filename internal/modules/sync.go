@@ -23,7 +23,7 @@ func SyncSearch(query string) []Result {
 	if strings.HasPrefix(q, "sync import ") {
 		zipPath := strings.TrimSpace(query[len("sync import "):])
 		return []Result{{
-			Type:    "sync",
+			Type:    TypeSync,
 			Title:   "Import Spark Settings",
 			Desc:    zipPath,
 			Icon:    "document-open",
@@ -40,7 +40,7 @@ func SyncSearch(query string) []Result {
 
 	return []Result{
 		{
-			Type:  "sync",
+			Type:  TypeSync,
 			Title: "Open Settings Folder",
 			Desc:  configDir,
 			Icon:  "folder-open",
@@ -49,7 +49,7 @@ func SyncSearch(query string) []Result {
 			},
 		},
 		{
-			Type:  "sync",
+			Type:  TypeSync,
 			Title: "Copy Sync Paths",
 			Desc:  "~/.config/spark + ~/.local/share/spark",
 			Icon:  "edit-copy",
@@ -58,7 +58,7 @@ func SyncSearch(query string) []Result {
 			},
 		},
 		{
-			Type:  "sync",
+			Type:  TypeSync,
 			Title: "Export Settings Zip",
 			Desc:  exportPath,
 			Icon:  "document-save",
@@ -72,7 +72,7 @@ func SyncSearch(query string) []Result {
 			},
 		},
 		{
-			Type:  "sync",
+			Type:  TypeSync,
 			Title: "Sync with Git/Syncthing",
 			Desc:  "Track copied paths with external sync",
 			Icon:  "emblem-synchronizing",
@@ -81,7 +81,7 @@ func SyncSearch(query string) []Result {
 			},
 		},
 		{
-			Type:  "sync",
+			Type:  TypeSync,
 			Title: "Copy Git Bootstrap",
 			Desc:  "~/.config/spark",
 			Icon:  "git",
@@ -90,7 +90,7 @@ func SyncSearch(query string) []Result {
 			},
 		},
 		{
-			Type:  "sync",
+			Type:  TypeSync,
 			Title: "Create Git Bootstrap Script",
 			Desc:  filepath.Join(configDir, "spark-sync-git.sh"),
 			Icon:  "document-save",
@@ -104,7 +104,7 @@ func SyncSearch(query string) []Result {
 			},
 		},
 		{
-			Type:  "sync",
+			Type:  TypeSync,
 			Title: "Open Syncthing",
 			Desc:  "http://127.0.0.1:8384",
 			Icon:  "emblem-synchronizing",
@@ -113,7 +113,7 @@ func SyncSearch(query string) []Result {
 			},
 		},
 		{
-			Type:  "sync",
+			Type:  TypeSync,
 			Title: "Create Sync Profile",
 			Desc:  filepath.Join(configDir, "sync-profile.txt"),
 			Icon:  "document-save",

@@ -52,7 +52,7 @@ func weatherResult(query, desc string, copyOnEnter bool) []Result {
 	}
 
 	return []Result{{
-		Type:  "weather",
+		Type:  TypeWeather,
 		Title: title,
 		Desc:  desc,
 		Icon:  "weather-clear",

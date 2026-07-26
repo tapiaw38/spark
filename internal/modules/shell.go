@@ -16,7 +16,7 @@ func ShellSearch(query string) []Result {
 	}
 
 	return []Result{{
-		Type:  "shell",
+		Type:  TypeShell,
 		Title: "Run: " + cmd,
 		Desc:  "Execute in terminal",
 		Icon:  "utilities-terminal",

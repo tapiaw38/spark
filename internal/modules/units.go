@@ -33,7 +33,7 @@ func UnitSearch(query string) []Result {
 	}
 	str := formatNumber(res)
 	return []Result{{
-		Type:   "calc",
+		Type:   TypeCalc,
 		Title:  str + " " + m[3],
 		Desc:   "Copy to clipboard",
 		Icon:   "accessories-calculator",

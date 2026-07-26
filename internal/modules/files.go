@@ -67,7 +67,7 @@ func FileLoading(query string) []Result {
 	}
 	if len(term) < 3 {
 		return []Result{{
-			Type:   "file",
+			Type:   TypeFile,
 			Title:  "Find Files",
 			Desc:   "Type f <name>, for example f pdf",
 			Icon:   "system-search",
@@ -75,7 +75,7 @@ func FileLoading(query string) []Result {
 		}}
 	}
 	return []Result{{
-		Type:   "file",
+		Type:   TypeFile,
 		Title:  "Searching files...",
 		Desc:   term,
 		Icon:   "system-search",
@@ -127,7 +127,7 @@ func doFileSearch(ctx context.Context, term string) []Result {
 		icon := getFileIcon(name)
 
 		results = append(results, Result{
-			Type:  "file",
+			Type:  TypeFile,
 			Title: name,
 			Desc:  shortenPath(dir),
 			Icon:  icon,

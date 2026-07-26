@@ -19,7 +19,7 @@ func TimerSearch(query string) []Result {
 	secs := strconv.Itoa(int(d.Seconds()))
 
 	return []Result{{
-		Type:  "timer",
+		Type:  TypeTimer,
 		Title: "Timer: " + arg,
 		Desc:  "Notify when elapsed",
 		Icon:  "alarm-symbolic",

@@ -24,7 +24,7 @@ func FileActions(path string) []Result {
 
 	return []Result{
 		{
-			Type:  "file-action",
+			Type:  TypeFileAction,
 			Title: "Open",
 			Desc:  path,
 			Icon:  "document-open",
@@ -33,7 +33,7 @@ func FileActions(path string) []Result {
 			},
 		},
 		{
-			Type:  "file-action",
+			Type:  TypeFileAction,
 			Title: "Reveal in Files",
 			Desc:  filepath.Dir(path),
 			Icon:  "folder-open",
@@ -42,7 +42,7 @@ func FileActions(path string) []Result {
 			},
 		},
 		{
-			Type:  "file-action",
+			Type:  TypeFileAction,
 			Title: "Copy Path",
 			Desc:  path,
 			Icon:  "edit-copy",
@@ -51,7 +51,7 @@ func FileActions(path string) []Result {
 			},
 		},
 		{
-			Type:  "file-action",
+			Type:  TypeFileAction,
 			Title: "Rename...",
 			Desc:  "Edit name in file operation window",
 			Icon:  "edit-rename",
@@ -60,7 +60,7 @@ func FileActions(path string) []Result {
 			},
 		},
 		{
-			Type:  "file-action",
+			Type:  TypeFileAction,
 			Title: "Copy To...",
 			Desc:  "Choose destination in file operation window",
 			Icon:  "edit-copy",
@@ -69,7 +69,7 @@ func FileActions(path string) []Result {
 			},
 		},
 		{
-			Type:  "file-action",
+			Type:  TypeFileAction,
 			Title: "Move To...",
 			Desc:  "Choose destination in file operation window",
 			Icon:  "go-jump",
@@ -78,7 +78,7 @@ func FileActions(path string) []Result {
 			},
 		},
 		{
-			Type:     "file-action",
+			Type:     TypeFileAction,
 			Title:    "Add to Buffer",
 			Desc:     bufferSummary(1),
 			Icon:     "list-add",
@@ -88,7 +88,7 @@ func FileActions(path string) []Result {
 			},
 		},
 		{
-			Type:  "file-action",
+			Type:  TypeFileAction,
 			Title: "Email File",
 			Desc:  path,
 			Icon:  "internet-mail",
@@ -97,7 +97,7 @@ func FileActions(path string) []Result {
 			},
 		},
 		{
-			Type:    "file-action",
+			Type:    TypeFileAction,
 			Title:   "Move to Trash",
 			Desc:    path,
 			Icon:    "user-trash",
@@ -117,7 +117,7 @@ func FileBufferSearch(query string) []Result {
 	paths := FileBuffer()
 	if len(paths) == 0 {
 		return []Result{{
-			Type:   "file-buffer",
+			Type:   TypeFileBuffer,
 			Title:  "File Buffer Empty",
 			Desc:   "Select file result, press Tab, choose Add to Buffer",
 			Icon:   "folder",
@@ -127,7 +127,7 @@ func FileBufferSearch(query string) []Result {
 
 	results := []Result{
 		{
-			Type:  "file-buffer-action",
+			Type:  TypeFileBufferAction,
 			Title: "Open Buffered Files",
 			Desc:  bufferSummary(len(paths)),
 			Icon:  "document-open",
@@ -138,7 +138,7 @@ func FileBufferSearch(query string) []Result {
 			},
 		},
 		{
-			Type:  "file-buffer-action",
+			Type:  TypeFileBufferAction,
 			Title: "Copy Buffered Paths",
 			Desc:  bufferSummary(len(paths)),
 			Icon:  "edit-copy",
@@ -147,7 +147,7 @@ func FileBufferSearch(query string) []Result {
 			},
 		},
 		{
-			Type:  "file-buffer-action",
+			Type:  TypeFileBufferAction,
 			Title: "Reveal First Buffered File",
 			Desc:  filepath.Dir(paths[0]),
 			Icon:  "folder-open",
@@ -159,7 +159,7 @@ func FileBufferSearch(query string) []Result {
 			},
 		},
 		{
-			Type:  "file-buffer-action",
+			Type:  TypeFileBufferAction,
 			Title: "Email Buffered Files",
 			Desc:  bufferSummary(len(paths)),
 			Icon:  "internet-mail",
@@ -168,7 +168,7 @@ func FileBufferSearch(query string) []Result {
 			},
 		},
 		{
-			Type:     "file-buffer-action",
+			Type:     TypeFileBufferAction,
 			Title:    "Clear Buffer",
 			Desc:     bufferSummary(len(paths)),
 			Icon:     "edit-clear",
@@ -182,7 +182,7 @@ func FileBufferSearch(query string) []Result {
 	for _, path := range paths {
 		p := path
 		results = append(results, Result{
-			Type:  "file",
+			Type:  TypeFile,
 			Title: filepath.Base(p),
 			Desc:  shortenPath(filepath.Dir(p)),
 			Icon:  getFileIcon(p),

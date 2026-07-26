@@ -36,7 +36,7 @@ func MusicSearch(query string) []Result {
 	}
 	if len(term) < 2 {
 		return []Result{{
-			Type:   "music",
+			Type:   TypeMusic,
 			Title:  "Browse Music",
 			Desc:   "m artists / m albums / m genres / m <song>",
 			Icon:   "folder-music",
@@ -47,7 +47,7 @@ func MusicSearch(query string) []Result {
 	musicDir := filepath.Join(os.Getenv("HOME"), "Music")
 	if _, err := os.Stat(musicDir); err != nil {
 		return []Result{{
-			Type:   "music",
+			Type:   TypeMusic,
 			Title:  "Music folder not found",
 			Desc:   musicDir,
 			Icon:   "folder-music",
@@ -64,7 +64,7 @@ func MusicSearch(query string) []Result {
 	for _, path := range paths {
 		p := path
 		results = append(results, Result{
-			Type:  "music",
+			Type:  TypeMusic,
 			Title: strings.TrimSuffix(filepath.Base(p), filepath.Ext(p)),
 			Desc:  shortenPath(filepath.Dir(p)),
 			Icon:  "audio-x-generic",
@@ -73,7 +73,7 @@ func MusicSearch(query string) []Result {
 			},
 		})
 		results = append(results, Result{
-			Type:     "music",
+			Type:     TypeMusic,
 			Title:    "Queue: " + strings.TrimSuffix(filepath.Base(p), filepath.Ext(p)),
 			Desc:     shortenPath(filepath.Dir(p)),
 			Icon:     "list-add",
@@ -93,7 +93,7 @@ func MusicQueueSearch(query string) []Result {
 	queue := MusicQueue()
 	if len(queue) == 0 {
 		return []Result{{
-			Type:   "music",
+			Type:   TypeMusic,
 			Title:  "Music Queue Empty",
 			Desc:   "Search m song, choose Queue result",
 			Icon:   "audio-x-generic",
@@ -102,7 +102,7 @@ func MusicQueueSearch(query string) []Result {
 	}
 	results := []Result{
 		{
-			Type:  "music",
+			Type:  TypeMusic,
 			Title: "Play Queue",
 			Desc:  stringInt(len(queue)) + " tracks",
 			Icon:  "media-playback-start",
@@ -111,7 +111,7 @@ func MusicQueueSearch(query string) []Result {
 			},
 		},
 		{
-			Type:  "music",
+			Type:  TypeMusic,
 			Title: "Play Queue with mpv",
 			Desc:  stringInt(len(queue)) + " tracks",
 			Icon:  "media-playback-start",
@@ -120,7 +120,7 @@ func MusicQueueSearch(query string) []Result {
 			},
 		},
 		{
-			Type:     "music",
+			Type:     TypeMusic,
 			Title:    "Clear Queue",
 			Desc:     stringInt(len(queue)) + " tracks",
 			Icon:     "edit-clear",
@@ -133,7 +133,7 @@ func MusicQueueSearch(query string) []Result {
 	for _, path := range queue {
 		p := path
 		results = append(results, Result{
-			Type:  "music",
+			Type:  TypeMusic,
 			Title: filepath.Base(p),
 			Desc:  shortenPath(filepath.Dir(p)),
 			Icon:  "audio-x-generic",
@@ -161,7 +161,7 @@ func musicBrowseSearch(term string) []Result {
 	values := musicTagValues(mode)
 	if len(values) == 0 {
 		return []Result{{
-			Type:   "music",
+			Type:   TypeMusic,
 			Title:  "No " + mode + " tags found",
 			Desc:   "Requires ffprobe tags or filenames",
 			Icon:   "audio-x-generic",
@@ -172,7 +172,7 @@ func musicBrowseSearch(term string) []Result {
 	for _, value := range values {
 		v := value
 		results = append(results, Result{
-			Type:          "music",
+			Type:          TypeMusic,
 			Title:         strings.Title(mode) + ": " + v,
 			Desc:          "Browse " + mode,
 			Icon:          "audio-x-generic",

@@ -21,7 +21,7 @@ func CalcSearch(query string) []Result {
 
 	resultStr := formatNumber(result)
 	return []Result{{
-		Type:  "calc",
+		Type:  TypeCalc,
 		Title: fmt.Sprintf("= %s", resultStr),
 		Desc:  "Copy to clipboard",
 		Icon:  "accessories-calculator",

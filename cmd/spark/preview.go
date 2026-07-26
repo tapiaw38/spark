@@ -36,7 +36,7 @@ func updatePreview(row *gtk.ListBoxRow) {
 	updatePreviewToolbar(r)
 
 	switch {
-	case r.Type == "file":
+	case r.Type == modules.TypeFile:
 		previewFile(r)
 	case previewLocalImage(r):
 	case r.PreviewImageURL != "":
@@ -44,7 +44,7 @@ func updatePreview(row *gtk.ListBoxRow) {
 		loadPreviewImageAsync(func() string {
 			return modules.CacheYouTubeThumbnail(r.PreviewImageURL)
 		})
-	case r.Type == "clipboard" && r.Data != "":
+	case r.Type == modules.TypeClipboard && r.Data != "":
 		showPreviewLoading(r.Title)
 		loadPreviewImageAsync(func() string {
 			return modules.GetClipboardPreviewImage(r)
@@ -191,7 +191,7 @@ func updatePreviewToolbar(r modules.Result) {
 	if previewToolbar == nil || previewMeta == nil {
 		return
 	}
-	if r.Type != "file" {
+	if r.Type != modules.TypeFile {
 		previewToolbar.Hide()
 		return
 	}

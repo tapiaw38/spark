@@ -70,7 +70,7 @@ func EmojiSearch(query string) []Result {
 	if !ok {
 		return nil
 	}
-	term := strings.ToLower(arg) // keywords are matched case-insensitively
+	term := strings.ToLower(arg)
 
 	var out []Result
 	for _, e := range emojiTable {
@@ -79,7 +79,7 @@ func EmojiSearch(query string) []Result {
 		}
 		e := e
 		out = append(out, Result{
-			Type:     "emoji",
+			Type:     TypeEmoji,
 			Title:    firstWord(e.keywords),
 			Desc:     "Copy emoji",
 			IconText: e.char,

@@ -25,7 +25,7 @@ func WebSearch(query string) []Result {
 	searchURL := strings.Replace(shortcut.URL, "%s", url.QueryEscape(searchQuery), 1)
 
 	return []Result{{
-		Type:  "web",
+		Type:  TypeWeb,
 		Title: shortcut.Name + ": " + searchQuery,
 		Desc:  "Search on " + shortcut.Name,
 		Icon:  shortcut.Icon,
@@ -44,7 +44,7 @@ func FallbackWebSearch(query string) []Result {
 	searchURL := "https://www.google.com/search?q=" + url.QueryEscape(query)
 
 	return []Result{{
-		Type:  "web",
+		Type:  TypeWeb,
 		Title: "Search Google: " + query,
 		Desc:  "No results found, search on Google",
 		Icon:  "web-browser",

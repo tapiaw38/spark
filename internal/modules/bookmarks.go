@@ -25,7 +25,7 @@ func BookmarksSearch(query string) []Result {
 			title = bm.url
 		}
 		out = append(out, Result{
-			Type:   "bookmark",
+			Type:   TypeBookmark,
 			Title:  title,
 			Desc:   bm.url,
 			Icon:   "user-bookmarks",

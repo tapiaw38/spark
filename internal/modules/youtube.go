@@ -88,7 +88,7 @@ func YouTubeSearch(query string) []Result {
 		}
 
 		results = append(results, Result{
-			Type:            "youtube",
+			Type:            TypeYouTube,
 			Title:           v.Title,
 			Desc:            desc,
 			Icon:            "youtube",
@@ -106,7 +106,7 @@ func YouTubeSearch(query string) []Result {
 func YouTubeLoading(query string) []Result {
 	searchQuery := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(query, "yt "), "youtube "))
 	return []Result{{
-		Type:  "youtube",
+		Type:  TypeYouTube,
 		Title: "YouTube: " + searchQuery,
 		Desc:  "Searching videos...",
 		Icon:  "youtube",
@@ -197,7 +197,7 @@ func CacheYouTubeThumbnail(thumbnailURL string) string {
 
 func youtubeFallback(title, desc, link string) Result {
 	return Result{
-		Type:  "web",
+		Type:  TypeWeb,
 		Title: title,
 		Desc:  desc,
 		Icon:  "youtube",

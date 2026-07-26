@@ -32,7 +32,7 @@ func DictionarySearch(query string) []Result {
 	if cached, ok := dictCache[word]; ok {
 		dictCacheMu.RUnlock()
 		return []Result{{
-			Type:  "dictionary",
+			Type:  TypeDictionary,
 			Title: word,
 			Desc:  cached,
 			Icon:  "accessories-dictionary",
@@ -49,7 +49,7 @@ func DictionarySearch(query string) []Result {
 		dictCacheMu.Unlock()
 
 		return []Result{{
-			Type:  "dictionary",
+			Type:  TypeDictionary,
 			Title: word,
 			Desc:  def,
 			Icon:  "accessories-dictionary",
@@ -68,7 +68,7 @@ func DictionarySearch(query string) []Result {
 	}()
 
 	return []Result{{
-		Type:   "dictionary",
+		Type:   TypeDictionary,
 		Title:  word,
 		Desc:   "Looking up...",
 		Icon:   "accessories-dictionary",

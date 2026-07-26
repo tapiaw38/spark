@@ -37,7 +37,7 @@ func appSearch(query string) []modules.Result {
 	for _, app := range matches {
 		a := app
 		out = append(out, modules.Result{
-			Type:  "app",
+			Type:  modules.TypeApp,
 			Title: a.Name,
 			Icon:  a.Icon,
 			Action: func() {

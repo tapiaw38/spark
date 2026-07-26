@@ -29,7 +29,7 @@ func ClipboardSearch(query string) []Result {
 
 	if _, err := exec.LookPath("cliphist"); err != nil {
 		return []Result{{
-			Type:   "clipboard",
+			Type:   TypeClipboard,
 			Title:  "Clipboard: cliphist not installed",
 			Desc:   "Install with: yay -S cliphist",
 			Icon:   "edit-paste",
@@ -67,11 +67,11 @@ func ClipboardSearch(query string) []Result {
 			preview = preview[:50] + "..."
 		}
 
-		clipID := id // capture
+		clipID := id
 		icon, desc := clipboardDisplay(preview, directPaste)
 		previewImage := clipboardPreviewImage(preview)
 		results = append(results, Result{
-			Type:         "clipboard",
+			Type:         TypeClipboard,
 			Title:        preview,
 			Desc:         desc,
 			Icon:         icon,
@@ -98,7 +98,7 @@ func ClipboardSearch(query string) []Result {
 
 	if len(results) == 0 && (query == "clip" || query == "cb" || query == "clipboard") {
 		return []Result{{
-			Type:   "clipboard",
+			Type:   TypeClipboard,
 			Title:  "Clipboard History",
 			Desc:   "Type 'clip <search>' to filter",
 			Icon:   "edit-paste",
@@ -110,7 +110,7 @@ func ClipboardSearch(query string) []Result {
 }
 
 func GetClipboardPreviewImage(r Result) string {
-	if r.Type != "clipboard" {
+	if r.Type != TypeClipboard {
 		return ""
 	}
 	if r.PreviewImage != "" {

@@ -59,7 +59,7 @@ func SnippetSearch(query string) []Result {
 		if strings.Contains(strings.ToLower(s.Keyword), strings.ToLower(searchTerm)) ||
 			strings.Contains(strings.ToLower(s.Name), strings.ToLower(searchTerm)) {
 
-			snippet := s // capture
+			snippet := s
 			preview := snippet.Content
 			if len(preview) > 40 {
 				preview = preview[:40] + "..."
@@ -67,7 +67,7 @@ func SnippetSearch(query string) []Result {
 			preview = strings.ReplaceAll(preview, "\n", " ")
 
 			results = append(results, Result{
-				Type:  "snippet",
+				Type:  TypeSnippet,
 				Title: snippet.Name + " (" + snippet.Keyword + ")",
 				Desc:  preview,
 				Icon:  "edit-paste",

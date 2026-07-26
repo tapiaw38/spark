@@ -202,7 +202,7 @@ func refreshSpotifyInfo() {
 	}()
 }
 
-func applyPlayerInfo(info *modules.SpotifyInfo) {
+func applyPlayerInfo(info *modules.PlayerInfo) {
 	if info == nil {
 		showPlayerDisconnected()
 		return
@@ -211,13 +211,13 @@ func applyPlayerInfo(info *modules.SpotifyInfo) {
 	spotifyTitle.SetText(info.Title)
 	spotifyArtist.SetText(info.Artist)
 	spotifyAlbum.SetText(info.Album)
-	spotifyStatus.SetText(playerStatusIcon(info.Status) + " " + info.Status)
+	spotifyStatus.SetText(playerStatusIcon(info.Status) + " " + string(info.Status))
 
-	if info.ArtPath != "" {
-		if pb, err := gdkpixbuf.NewPixbufFromFileAtSize(info.ArtPath, playerArtSmallSize, playerArtSmallSize); err == nil {
+	if info.ArtCachePath != "" {
+		if pb, err := gdkpixbuf.NewPixbufFromFileAtSize(info.ArtCachePath, playerArtSmallSize, playerArtSmallSize); err == nil {
 			spotifyArtSmall.SetFromPixbuf(pb)
 		}
-		if pb, err := gdkpixbuf.NewPixbufFromFileAtSize(info.ArtPath, playerArtBigSize, playerArtBigSize); err == nil {
+		if pb, err := gdkpixbuf.NewPixbufFromFileAtSize(info.ArtCachePath, playerArtBigSize, playerArtBigSize); err == nil {
 			spotifyArtBig.SetFromPixbuf(pb)
 		}
 	}
@@ -245,11 +245,11 @@ func showPlayerDisconnected() {
 	spotifyArtBig.Clear()
 }
 
-func playerStatusIcon(status string) string {
+func playerStatusIcon(status modules.PlaybackStatus) string {
 	switch status {
-	case "Paused":
+	case modules.StatusPaused:
 		return "⏸"
-	case "Stopped":
+	case modules.StatusStopped:
 		return "⏹"
 	default:
 		return "▶"

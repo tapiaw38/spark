@@ -34,7 +34,7 @@ func ContactsSearch(query string) []Result {
 	contacts := loadContacts(filter)
 	if len(contacts) == 0 {
 		return []Result{{
-			Type:   "contact",
+			Type:   TypeContact,
 			Title:  "No Contacts Found",
 			Desc:   "Looks for .vcf files in local contact folders",
 			Icon:   "x-office-address-book",
@@ -47,7 +47,7 @@ func ContactsSearch(query string) []Result {
 		contact := c
 		if contact.email != "" {
 			results = append(results, Result{
-				Type:  "contact",
+				Type:  TypeContact,
 				Title: contact.name,
 				Desc:  contact.email,
 				Icon:  "internet-mail",
@@ -56,7 +56,7 @@ func ContactsSearch(query string) []Result {
 				},
 			})
 			results = append(results, Result{
-				Type:  "contact",
+				Type:  TypeContact,
 				Title: "Email " + contact.name,
 				Desc:  contact.email,
 				Icon:  "internet-mail",
@@ -67,7 +67,7 @@ func ContactsSearch(query string) []Result {
 		}
 		if contact.phone != "" {
 			results = append(results, Result{
-				Type:  "contact",
+				Type:  TypeContact,
 				Title: contact.name,
 				Desc:  contact.phone,
 				Icon:  "phone",
@@ -81,7 +81,7 @@ func ContactsSearch(query string) []Result {
 		}
 		if contact.path != "" {
 			results = append(results, Result{
-				Type:  "contact",
+				Type:  TypeContact,
 				Title: "Open Contact: " + contact.name,
 				Desc:  shortenPath(contact.path),
 				Icon:  "x-office-address-book",
@@ -96,7 +96,7 @@ func ContactsSearch(query string) []Result {
 
 func contactSyncResults() []Result {
 	results := []Result{{
-		Type:   "contact",
+		Type:   TypeContact,
 		Title:  "CardDAV via vdirsyncer",
 		Desc:   "Run vdirsyncer sync, then contact <name>",
 		Icon:   "emblem-synchronizing",
@@ -104,7 +104,7 @@ func contactSyncResults() []Result {
 	}}
 	if _, err := exec.LookPath("khal"); err == nil {
 		results = append(results, Result{
-			Type:   "contact",
+			Type:   TypeContact,
 			Title:  "Open khal Contacts",
 			Desc:   "khal interactive contact backend",
 			Icon:   "x-office-address-book",
@@ -112,7 +112,7 @@ func contactSyncResults() []Result {
 		})
 	}
 	results = append(results, Result{
-		Type:  "contact",
+		Type:  TypeContact,
 		Title: "Open Contact Data Folder",
 		Desc:  "~/.local/share/contacts",
 		Icon:  "folder-open",

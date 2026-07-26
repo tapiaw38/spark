@@ -44,7 +44,7 @@ func WindowSearch(query string) []Result {
 			matcher = "title:" + title
 		}
 		results = append(results, Result{
-			Type:   "window",
+			Type:   TypeWindow,
 			Title:  line,
 			Desc:   "Focus window",
 			Icon:   "preferences-system-windows",
@@ -68,7 +68,7 @@ type mangoTag struct {
 func mangoWorkspaceSearch(query string) []Result {
 	if _, err := exec.LookPath("mmsg"); err != nil {
 		return []Result{{
-			Type:   "window",
+			Type:   TypeWindow,
 			Title:  "Window switcher unavailable",
 			Desc:   "Install wlrctl or use MangoWM with mmsg",
 			Icon:   "dialog-warning",
@@ -80,7 +80,7 @@ func mangoWorkspaceSearch(query string) []Result {
 	tags := mangoTags()
 	if len(tags) == 0 {
 		return []Result{{
-			Type:   "workspace",
+			Type:   TypeWorkspace,
 			Title:  "No MangoWM workspaces",
 			Desc:   "mmsg did not return tags",
 			Icon:   "view-grid",
@@ -104,7 +104,7 @@ func mangoWorkspaceSearch(query string) []Result {
 			desc += " | occupied"
 		}
 		results = append(results, Result{
-			Type:  "workspace",
+			Type:  TypeWorkspace,
 			Title: title,
 			Desc:  desc,
 			Icon:  "view-grid",

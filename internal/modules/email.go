@@ -22,7 +22,7 @@ func EmailSearch(query string) []Result {
 	}
 	if body == "" {
 		return []Result{{
-			Type:  "email",
+			Type:  TypeEmail,
 			Title: "Open Email Composer",
 			Desc:  "Type: email person@example.com subject",
 			Icon:  "internet-mail",
@@ -44,7 +44,7 @@ func EmailSearch(query string) []Result {
 	}
 	return []Result{
 		{
-			Type:  "email",
+			Type:  TypeEmail,
 			Title: "Open Email Composer",
 			Desc:  to + " | " + subject,
 			Icon:  "internet-mail",
@@ -53,7 +53,7 @@ func EmailSearch(query string) []Result {
 			},
 		},
 		{
-			Type:  "email",
+			Type:  TypeEmail,
 			Title: title,
 			Desc:  subject,
 			Icon:  "internet-mail",
