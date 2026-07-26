@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/diamondburned/gotk4/pkg/gdk/v3"
 	"github.com/diamondburned/gotk4/pkg/gtk/v3"
 	"github.com/tapiaw38/spark/internal/config"
@@ -8,75 +10,78 @@ import (
 
 func loadCSS() {
 	css := gtk.NewCSSProvider()
-	css.LoadFromData(config.GetCSS() + `
+	css.LoadFromData(config.GetCSS() + fmt.Sprintf(`
 		#spark-preview {
-			background: rgba(0, 0, 0, 0.3);
-			padding: 8px;
-			border-radius: 6px;
+			background: @spark-black-30;
+			padding: %[2]dpx;
+			border-radius: %[1]dpx;
 		}
 		#spark-preview-label {
-			color: rgba(255, 255, 255, 0.8);
+			color: @spark-white-80;
 			font-family: monospace;
-			font-size: 11px;
+			font-size: %[3]dpx;
 		}
 		#spark-preview-image {
-			background: rgba(255, 255, 255, 0.08);
-			border: 1px solid rgba(255, 255, 255, 0.14);
-			padding: 6px;
+			background: @spark-white-08;
+			border: 1px solid @spark-white-14;
+			padding: %[2]dpx;
 		}
 		#spark-icon-text {
 			font-family: "Noto Color Emoji", "Twemoji", "Segoe UI Emoji", sans-serif;
-			font-size: 22px;
+			font-size: %[4]dpx;
 		}
 		#spotify-view {
-			background: rgba(0, 0, 0, 0.2);
-			border-radius: 8px;
-			padding: 12px;
+			background: @spark-black-20;
+			border-radius: %[5]dpx;
+			padding: %[6]dpx;
 		}
 		#spotify-header {
-			background: rgba(0, 0, 0, 0.3);
-			border-radius: 8px;
-			padding: 12px;
+			background: @spark-black-30;
+			border-radius: %[5]dpx;
+			padding: %[6]dpx;
 		}
 		#spotify-title {
-			color: white;
-			font-size: 16px;
+			color: @spark-white;
+			font-size: %[7]dpx;
 			font-weight: bold;
 		}
 		#spotify-artist {
-			color: rgba(255, 255, 255, 0.7);
-			font-size: 13px;
+			color: @spark-white-70;
+			font-size: %[8]dpx;
 		}
 		#spotify-album {
-			color: rgba(255, 255, 255, 0.5);
-			font-size: 12px;
+			color: @spark-white-50;
+			font-size: %[10]dpx;
 		}
 		#spotify-status {
-			color: #1DB954;
-			font-size: 11px;
+			color: @spark-spotify-green;
+			font-size: %[3]dpx;
 		}
 		#spotify-control {
-			background: rgba(255, 255, 255, 0.1);
-			border-radius: 50%;
-			padding: 8px;
-			min-width: 36px;
-			min-height: 36px;
+			background: @spark-white-10;
+			border-radius: 50%%;
+			padding: %[2]dpx;
+			min-width: %[9]dpx;
+			min-height: %[9]dpx;
 		}
 		#spotify-control:hover {
-			background: rgba(255, 255, 255, 0.2);
+			background: @spark-white-20;
 		}
 		#spotify-list {
 			background: transparent;
 		}
 		#spotify-list row {
 			background: transparent;
-			border-radius: 6px;
-			padding: 6px;
+			border-radius: %[1]dpx;
+			padding: %[1]dpx;
 		}
 		#spotify-list row:selected {
-			background: rgba(100, 150, 255, 0.3);
+			background: @spark-selection;
 		}
-	`)
+	`, config.RadiusSmall, config.SpacingMedium, config.FontSizeSmall,
+		config.FontSizeIcon, config.RadiusMedium, config.SpacingLarge,
+		config.FontSizeLarge, config.FontSizeMedium, config.SpotifyControlSize,
+		config.FontSizeBody))
 	screen := gdk.ScreenGetDefault()
 	gtk.StyleContextAddProviderForScreen(screen, css, uint(gtk.STYLE_PROVIDER_PRIORITY_APPLICATION))
 }

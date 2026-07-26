@@ -164,27 +164,31 @@ func containsSparkBind(line string) bool {
 
 func GetCSS() string {
 	c := Current
-	return fmt.Sprintf(`
+	return StaticThemeCSS + fmt.Sprintf(`
+		@define-color spark-bg rgba(%s, %.2f);
+		@define-color spark-text %s;
+		@define-color spark-selection rgba(%s, 0.3);
+
 		window {
-			background: rgba(%s, %.2f);
+			background: @spark-bg;
 			border-radius: %dpx;
 		}
 		#spark-entry {
 			font-size: %dpx;
-			padding: 12px;
-			background: rgba(255, 255, 255, 0.1);
+			padding: %dpx;
+			background: @spark-white-10;
 			border: none;
-			border-radius: 8px;
-			color: %s;
+			border-radius: %dpx;
+			color: @spark-text;
 		}
 		#spark-results {
 			background: transparent;
 		}
 		#spark-row {
 			background: transparent;
-			color: %s;
-			border-radius: 6px;
-			padding: 4px 8px;
+			color: @spark-text;
+			border-radius: %dpx;
+			padding: %dpx %dpx;
 			outline: none;
 			box-shadow: none;
 		}
@@ -198,18 +202,19 @@ func GetCSS() string {
 		#spark-row:selected,
 		#spark-row:selected:hover,
 		#spark-row:selected:focus {
-			background: rgba(%s, 0.3);
+			background: @spark-selection;
 			outline: none;
 			box-shadow: none;
 		}
 		#spark-title {
-			color: %s;
-			font-size: 14px;
+			color: @spark-text;
+			font-size: %dpx;
 		}
 		#spark-desc {
-			color: rgba(255, 255, 255, 0.6);
-			font-size: 11px;
+			color: @spark-white-60;
+			font-size: %dpx;
 		}
-	`, c.BackgroundColor, c.BackgroundAlpha, c.BorderRadius,
-		c.FontSize, c.TextColor, c.TextColor, c.SelectionColor, c.TextColor)
+	`, c.BackgroundColor, c.BackgroundAlpha, c.TextColor, c.SelectionColor,
+		c.BorderRadius, c.FontSize, SpacingLarge, RadiusMedium,
+		RadiusSmall, SpacingTiny, SpacingMedium, FontSizeTitle, FontSizeSmall)
 }

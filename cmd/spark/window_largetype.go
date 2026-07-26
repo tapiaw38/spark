@@ -4,6 +4,7 @@ import (
 	"github.com/diamondburned/gotk4/pkg/gdk/v3"
 	"github.com/diamondburned/gotk4/pkg/gtk/v3"
 	"github.com/diamondburned/gotk4/pkg/pango"
+	"github.com/tapiaw38/spark/internal/config"
 )
 
 func showLargeTypeAll(text string) {
@@ -47,12 +48,12 @@ func showLargeType(text string, monitor int) {
 	window.Add(box)
 
 	css := gtk.NewCSSProvider()
-	css.LoadFromData(`
+	css.LoadFromData(config.StaticThemeCSS + `
 		#large-type-window {
-			background: rgba(0, 0, 0, 0.92);
+			background: @spark-black-92;
 		}
 		#large-type-label {
-			color: white;
+			color: @spark-white;
 			font-size: ` + largeTypeFontSize(text) + `px;
 			font-weight: bold;
 		}
