@@ -31,7 +31,7 @@ func BookmarksSearch(query string) []Result {
 			Icon:   "user-bookmarks",
 			Action: func() { Open(bm.url) },
 		})
-		if len(out) >= 8 {
+		if len(out) >= MaxCompactResults {
 			break
 		}
 	}

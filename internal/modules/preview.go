@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/tapiaw38/spark/internal/config"
 )
 
 func GetPreview(r Result) string {
@@ -116,10 +118,7 @@ func previewOfficeText(path string) string {
 		defer rc.Close()
 		data := make([]byte, 8192)
 		n, _ := rc.Read(data)
-		text := stripXMLTags(string(data[:n]))
-		if len(text) > 300 {
-			text = text[:300] + "..."
-		}
+		text := Truncate(stripXMLTags(string(data[:n])), DocumentPreviewLen)
 		if strings.TrimSpace(text) == "" {
 			return "[Document file]"
 		}
@@ -174,9 +173,7 @@ func previewTextFile(path string) string {
 		if i >= 5 || chars > 200 {
 			break
 		}
-		if len(line) > 50 {
-			line = line[:50] + "..."
-		}
+		line = Truncate(line, FilePreviewLineLen)
 		preview = append(preview, line)
 		chars += len(line)
 	}
@@ -194,11 +191,7 @@ func previewPDF(path string) string {
 		return "[PDF file]"
 	}
 
-	content := string(out)
-	if len(content) > 200 {
-		return content[:200] + "..."
-	}
-	return content
+	return Truncate(string(out), PDFPreviewLen)
 }
 
 func previewPDFImage(path string) string {
@@ -215,7 +208,7 @@ func previewPDFImageAt(path string, page, scale int) string {
 	if scale < 120 {
 		scale = 360
 	}
-	cacheDir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "pdf-preview")
+	cacheDir := config.CacheSubdir("pdf-preview")
 	if err := os.MkdirAll(cacheDir, 0755); err != nil {
 		return ""
 	}
@@ -232,7 +225,7 @@ func previewPDFImageAt(path string, page, scale int) string {
 }
 
 func previewOfficePDF(path string) string {
-	cacheDir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "office-preview")
+	cacheDir := config.CacheSubdir("office-preview")
 	if err := os.MkdirAll(cacheDir, 0755); err != nil {
 		return ""
 	}

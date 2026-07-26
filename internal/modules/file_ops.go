@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/tapiaw38/spark/internal/config"
 )
 
 var lastFileUndo *fileUndo
@@ -147,7 +149,7 @@ func clearUndo() {
 }
 
 func fileUndoPath() string {
-	return filepath.Join(os.Getenv("HOME"), ".local", "share", "spark", "undo.json")
+	return config.DataFile("undo.json")
 }
 
 func runUndo(undo *fileUndo) {

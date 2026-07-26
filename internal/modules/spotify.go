@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/tapiaw38/spark/internal/config"
 )
 
 type PlaybackStatus string
@@ -267,7 +269,7 @@ func playerAction(kind PlayerKind, args ...string) func() {
 		}
 		if err := playerctlMedia(player, args...).Run(); err != nil {
 			SetStatus(false, string(kind)+" command failed: "+strings.Join(args, " "))
-			time.AfterFunc(3*time.Second, func() { SetStatus(true, "") })
+			time.AfterFunc(StatusClearDelay, func() { SetStatus(true, "") })
 			return
 		}
 		SetStatus(true, "")
@@ -375,7 +377,7 @@ func YouTubePlayerStatus(query string) []Result {
 }
 
 func cacheAlbumArt(url string) string {
-	cacheDir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "art")
+	cacheDir := config.CacheSubdir("art")
 	os.MkdirAll(cacheDir, 0755)
 
 	hash := simpleHash(url)

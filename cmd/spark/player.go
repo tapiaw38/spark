@@ -14,6 +14,8 @@ import (
 const (
 	playerArtSmallSize = 64
 	playerArtBigSize   = 150
+
+	playerRefreshDelay = 300 * time.Millisecond
 )
 
 func createSpotifyView() {
@@ -226,7 +228,7 @@ func applyPlayerInfo(info *modules.PlayerInfo) {
 func runPlayerAction(action func()) {
 	go func() {
 		action()
-		time.Sleep(playerRefreshDelayMs * time.Millisecond)
+		time.Sleep(playerRefreshDelay)
 		glib.IdleAdd(func() { refreshSpotifyInfo() })
 	}()
 }

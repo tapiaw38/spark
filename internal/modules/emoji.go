@@ -86,7 +86,7 @@ func EmojiSearch(query string) []Result {
 			KeepOpen: false,
 			Action:   func() { copyToClipboard(e.char) },
 		})
-		if len(out) >= 8 {
+		if len(out) >= MaxCompactResults {
 			break
 		}
 	}

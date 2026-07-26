@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+
+	"github.com/tapiaw38/spark/internal/config"
 )
 
-var historyPath = filepath.Join(os.Getenv("HOME"), ".local/share/spark/history.json")
+var historyPath = config.DataFile("history.json")
 
 var counts map[string]int
 

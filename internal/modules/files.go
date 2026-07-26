@@ -32,7 +32,7 @@ func FileSearchContext(ctx context.Context, query string) []Result {
 	}
 
 	fileCacheMu.Lock()
-	if term == fileCacheTerm && time.Since(fileCacheTime) < 5*time.Second {
+	if term == fileCacheTerm && time.Since(fileCacheTime) < FileCacheTTL {
 		result := fileCache
 		fileCacheMu.Unlock()
 		return result
@@ -99,7 +99,7 @@ func fileSearchTerm(query string) (string, bool) {
 }
 
 func doFileSearch(ctx context.Context, term string) []Result {
-	ctx, cancel := context.WithTimeout(ctx, 900*time.Millisecond)
+	ctx, cancel := context.WithTimeout(ctx, FileSearchTimeout)
 	defer cancel()
 
 	var cmd *exec.Cmd

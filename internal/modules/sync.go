@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/tapiaw38/spark/internal/config"
 )
 
 func SyncSearch(query string) []Result {
@@ -15,10 +17,10 @@ func SyncSearch(query string) []Result {
 		return nil
 	}
 
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "spark")
-	dataDir := filepath.Join(os.Getenv("HOME"), ".local", "share", "spark")
+	configDir := config.ConfigDir()
+	dataDir := config.DataDir()
 	paths := configDir + "\n" + dataDir
-	exportPath := filepath.Join(os.Getenv("HOME"), "spark-settings.zip")
+	exportPath := config.HomeFile("spark-settings.zip")
 
 	if strings.HasPrefix(q, "sync import ") {
 		zipPath := strings.TrimSpace(query[len("sync import "):])

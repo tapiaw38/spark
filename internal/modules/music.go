@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/tapiaw38/spark/internal/config"
 )
 
 func MusicSearch(query string) []Result {
@@ -44,7 +46,7 @@ func MusicSearch(query string) []Result {
 		}}
 	}
 
-	musicDir := filepath.Join(os.Getenv("HOME"), "Music")
+	musicDir := config.HomeFile("Music")
 	if _, err := os.Stat(musicDir); err != nil {
 		return []Result{{
 			Type:   TypeMusic,
@@ -185,7 +187,7 @@ func musicBrowseSearch(term string) []Result {
 }
 
 func musicTagValues(tag string) []string {
-	musicDir := filepath.Join(os.Getenv("HOME"), "Music")
+	musicDir := config.HomeFile("Music")
 	paths := findAudioFiles(musicDir, "")
 	seen := make(map[string]bool)
 	var values []string
@@ -204,7 +206,7 @@ func musicTagValues(tag string) []string {
 				}
 				seen[key] = true
 				values = append(values, value)
-				if len(values) >= 50 {
+				if len(values) >= MaxBrowsingResults {
 					return values
 				}
 			}
@@ -219,7 +221,7 @@ func musicTagValues(tag string) []string {
 			}
 			seen[key] = true
 			values = append(values, value)
-			if len(values) >= 50 {
+			if len(values) >= MaxBrowsingResults {
 				break
 			}
 		}
@@ -253,7 +255,7 @@ func findAudioFiles(dir, term string) []string {
 	var out []byte
 	select {
 	case out = <-done:
-	case <-time.After(700 * time.Millisecond):
+	case <-time.After(MusicProbeTimeout):
 		if cmd.Process != nil {
 			cmd.Process.Kill()
 		}
@@ -266,7 +268,7 @@ func findAudioFiles(dir, term string) []string {
 			continue
 		}
 		paths = append(paths, line)
-		if len(paths) >= 50 {
+		if len(paths) >= MaxBrowsingResults {
 			break
 		}
 	}
@@ -297,7 +299,7 @@ func filterMusicByTag(paths []string, tag, term string) []string {
 		if strings.Contains(strings.ToLower(string(data)), needle) {
 			out = append(out, path)
 		}
-		if len(out) >= 50 {
+		if len(out) >= MaxBrowsingResults {
 			break
 		}
 	}
@@ -316,7 +318,7 @@ func filterMusicByPath(paths []string, term string) []string {
 }
 
 func musicQueuePath() string {
-	return filepath.Join(os.Getenv("HOME"), ".local", "share", "spark", "music-queue.json")
+	return config.DataFile("music-queue.json")
 }
 
 func MusicQueue() []string {

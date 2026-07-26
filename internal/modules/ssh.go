@@ -3,8 +3,9 @@ package modules
 import (
 	"bufio"
 	"os"
-	"path/filepath"
 	"strings"
+
+	"github.com/tapiaw38/spark/internal/config"
 )
 
 func SSHSearch(query string) []Result {
@@ -37,7 +38,7 @@ func SSHSearch(query string) []Result {
 			Icon:   "utilities-terminal",
 			Action: func() { openTerminal("ssh " + shellQuote(host)) },
 		})
-		if len(out) >= 8 {
+		if len(out) >= MaxCompactResults {
 			break
 		}
 	}
@@ -54,7 +55,7 @@ func SSHSearch(query string) []Result {
 }
 
 func sshHosts() ([]string, error) {
-	f, err := os.Open(filepath.Join(os.Getenv("HOME"), ".ssh", "config"))
+	f, err := os.Open(config.HomeFile(".ssh", "config"))
 	if err != nil {
 		return nil, err
 	}

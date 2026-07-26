@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/tapiaw38/spark/internal/config"
 )
 
 func ScreenshotSearch(query string) []Result {
@@ -43,7 +45,7 @@ func ScreenshotSearch(query string) []Result {
 }
 
 func shotPath() string {
-	dir := filepath.Join(os.Getenv("HOME"), "Pictures")
+	dir := config.HomeFile("Pictures")
 	os.MkdirAll(dir, 0755)
 	return filepath.Join(dir, "Screenshot-"+strconv.FormatInt(time.Now().Unix(), 10)+".png")
 }

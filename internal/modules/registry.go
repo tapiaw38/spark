@@ -102,7 +102,7 @@ func DefaultAsyncSearchers() []AsyncSearcher {
 			Loading:  FileLoading,
 			Search:   FileSearchContext,
 			Ready:    IsFileQueryReady,
-			Debounce: 250 * time.Millisecond,
+			Debounce: FileSearchDebounce,
 		},
 		{
 			Name:    "weather",

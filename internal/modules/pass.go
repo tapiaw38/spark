@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/tapiaw38/spark/internal/config"
 )
 
 func PassSearch(query string) []Result {
@@ -37,7 +39,7 @@ func PassSearch(query string) []Result {
 				}
 			},
 		})
-		if len(out) >= 8 {
+		if len(out) >= MaxCompactResults {
 			break
 		}
 	}
@@ -47,7 +49,7 @@ func PassSearch(query string) []Result {
 func passEntries() []string {
 	store := os.Getenv("PASSWORD_STORE_DIR")
 	if store == "" {
-		store = filepath.Join(os.Getenv("HOME"), ".password-store")
+		store = config.HomeFile(".password-store")
 	}
 	var entries []string
 	filepath.WalkDir(store, func(path string, d fs.DirEntry, err error) error {

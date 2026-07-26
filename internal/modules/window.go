@@ -50,7 +50,7 @@ func WindowSearch(query string) []Result {
 			Icon:   "preferences-system-windows",
 			Action: func() { Run("wlrctl", "toplevel", "focus", matcher) },
 		})
-		if len(results) >= 10 {
+		if len(results) >= MaxWindowResults {
 			break
 		}
 	}

@@ -6,6 +6,8 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+
+	"github.com/tapiaw38/spark/internal/config"
 )
 
 type systemCommand struct {
@@ -132,8 +134,8 @@ func logout() {
 
 func emptyTrash() {
 	for _, dir := range []string{
-		filepath.Join(os.Getenv("HOME"), ".local/share/Trash/files"),
-		filepath.Join(os.Getenv("HOME"), ".local/share/Trash/info"),
+		config.DataHomeFile("Trash", "files"),
+		config.DataHomeFile("Trash", "info"),
 	} {
 		entries, err := os.ReadDir(dir)
 		if err != nil {

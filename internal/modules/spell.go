@@ -4,7 +4,6 @@ import (
 	"context"
 	"os/exec"
 	"strings"
-	"time"
 
 	"github.com/tapiaw38/spark/internal/config"
 )
@@ -58,7 +57,7 @@ func runSpellChecker(word, lang string) *Result {
 }
 
 func parseSpellOutput(word, cmdName, lang string) *Result {
-	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), SpellCheckTimeout)
 	defer cancel()
 
 	args := []string{"-a"}
@@ -123,7 +122,7 @@ func spellSuggestions(line string) []string {
 		if s != "" {
 			out = append(out, s)
 		}
-		if len(out) >= 6 {
+		if len(out) >= MaxSpellSuggestions {
 			break
 		}
 	}

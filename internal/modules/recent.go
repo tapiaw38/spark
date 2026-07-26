@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/tapiaw38/spark/internal/config"
 )
 
 func RecentSearch(query string) []Result {
@@ -56,9 +58,9 @@ func recentFiles(filter, appFilter string) []string {
 	var results []string
 	seen := make(map[string]bool)
 	for _, path := range []string{
-		filepath.Join(os.Getenv("HOME"), ".local/share/recently-used.xbel"),
-		filepath.Join(os.Getenv("HOME"), ".local/share/RecentDocuments"),
-		filepath.Join(os.Getenv("HOME"), ".local/share/kactivitymanagerd/resources/database"),
+		config.DataHomeFile("recently-used.xbel"),
+		config.DataHomeFile("RecentDocuments"),
+		config.DataHomeFile("kactivitymanagerd", "resources", "database"),
 	} {
 		for _, recent := range recentFilesFromPath(path, filter, appFilter) {
 			if seen[recent] {
@@ -66,7 +68,7 @@ func recentFiles(filter, appFilter string) []string {
 			}
 			seen[recent] = true
 			results = append(results, recent)
-			if len(results) >= 50 {
+			if len(results) >= MaxBrowsingResults {
 				return results
 			}
 		}
@@ -121,7 +123,7 @@ func recentFilesFromPath(path, filter, appFilter string) []string {
 			}
 			seen[localPath] = true
 			results = append(results, localPath)
-			if len(results) >= 50 {
+			if len(results) >= MaxBrowsingResults {
 				return results
 			}
 		}

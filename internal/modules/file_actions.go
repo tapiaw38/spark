@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/tapiaw38/spark/internal/config"
 )
 
 var (
@@ -225,7 +227,7 @@ func ClearFileBuffer() {
 }
 
 func fileBufferPath() string {
-	return filepath.Join(os.Getenv("HOME"), ".local", "share", "spark", "file-buffer.json")
+	return config.DataFile("file-buffer.json")
 }
 
 func loadFileBufferLocked() {

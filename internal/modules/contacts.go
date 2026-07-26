@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/tapiaw38/spark/internal/config"
 )
 
 type contact struct {
@@ -76,7 +78,7 @@ func ContactsSearch(query string) []Result {
 				},
 			})
 		}
-		if len(results) >= 50 {
+		if len(results) >= MaxBrowsingResults {
 			break
 		}
 		if contact.path != "" {
@@ -117,7 +119,7 @@ func contactSyncResults() []Result {
 		Desc:  "~/.local/share/contacts",
 		Icon:  "folder-open",
 		Action: func() {
-			Start("xdg-open", filepath.Join(os.Getenv("HOME"), ".local/share/contacts"))
+			Start("xdg-open", config.DataHomeFile("contacts"))
 		},
 	})
 	return results
@@ -125,16 +127,16 @@ func contactSyncResults() []Result {
 
 func loadContacts(filter string) []contact {
 	dirs := []string{
-		filepath.Join(os.Getenv("HOME"), ".local/share/contacts"),
-		filepath.Join(os.Getenv("HOME"), ".local/share/evolution/addressbook"),
-		filepath.Join(os.Getenv("HOME"), ".local/share/kaddressbook"),
-		filepath.Join(os.Getenv("HOME"), ".local/share/akonadi"),
-		filepath.Join(os.Getenv("HOME"), ".local/share/vdirsyncer"),
-		filepath.Join(os.Getenv("HOME"), ".local/share/khal"),
-		filepath.Join(os.Getenv("HOME"), ".local/share/carddav"),
-		filepath.Join(os.Getenv("HOME"), ".cache/evolution/addressbook"),
-		filepath.Join(os.Getenv("HOME"), ".contacts"),
-		filepath.Join(os.Getenv("HOME"), "Contacts"),
+		config.DataHomeFile("contacts"),
+		config.DataHomeFile("evolution", "addressbook"),
+		config.DataHomeFile("kaddressbook"),
+		config.DataHomeFile("akonadi"),
+		config.DataHomeFile("vdirsyncer"),
+		config.DataHomeFile("khal"),
+		config.DataHomeFile("carddav"),
+		config.HomeFile(".cache", "evolution", "addressbook"),
+		config.HomeFile(".contacts"),
+		config.HomeFile("Contacts"),
 	}
 
 	var contacts []contact
@@ -157,7 +159,7 @@ func loadContacts(filter string) []contact {
 				return nil
 			}
 			contacts = append(contacts, c)
-			if len(contacts) >= 50 {
+			if len(contacts) >= MaxBrowsingResults {
 				return filepath.SkipAll
 			}
 			return nil

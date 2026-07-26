@@ -66,7 +66,7 @@ func StatsSearch(query string) []Result {
 			Icon:   "utilities-system-monitor",
 			Action: func() {},
 		})
-		if len(results) >= 12 {
+		if len(results) >= MaxStatsResults {
 			break
 		}
 	}

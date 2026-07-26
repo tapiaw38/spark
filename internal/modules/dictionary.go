@@ -91,7 +91,7 @@ func localDict(word string) string {
 	var out []byte
 	select {
 	case out = <-done:
-	case <-time.After(200 * time.Millisecond):
+	case <-time.After(DictionaryLookupTimeout):
 		cmd.Process.Kill()
 		return ""
 	}
@@ -103,17 +103,14 @@ func localDict(word string) string {
 			continue
 		}
 		if len(line) > 10 {
-			if len(line) > 80 {
-				return line[:80] + "..."
-			}
-			return line
+			return Truncate(line, DefinitionLen)
 		}
 	}
 	return ""
 }
 
 func onlineDict(word string) string {
-	client := http.Client{Timeout: 1 * time.Second}
+	client := http.Client{Timeout: DictionaryHTTPTimeout}
 	resp, err := client.Get("https://api.dictionaryapi.dev/api/v2/entries/en/" + word)
 	if err != nil || resp.StatusCode != 200 {
 		return ""
@@ -136,11 +133,7 @@ func onlineDict(word string) string {
 	if len(data) > 0 && len(data[0].Meanings) > 0 && len(data[0].Meanings[0].Definitions) > 0 {
 		def := data[0].Meanings[0].Definitions[0].Definition
 		pos := data[0].Meanings[0].PartOfSpeech
-		result := "(" + pos + ") " + def
-		if len(result) > 80 {
-			return result[:80] + "..."
-		}
-		return result
+		return Truncate("("+pos+") "+def, DefinitionLen)
 	}
 
 	return ""

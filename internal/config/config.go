@@ -64,7 +64,7 @@ var defaultConfig = Config{
 var Current = defaultConfig
 
 func Load() error {
-	configPath := filepath.Join(os.Getenv("HOME"), ".config", "spark", "config.yaml")
+	configPath := ConfigFile("config.yaml")
 
 	data, err := os.ReadFile(configPath)
 	if err != nil {
@@ -79,7 +79,7 @@ func Load() error {
 }
 
 func Save() error {
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "spark")
+	configDir := ConfigDir()
 	os.MkdirAll(configDir, 0755)
 
 	configPath := filepath.Join(configDir, "config.yaml")
@@ -93,7 +93,7 @@ func Save() error {
 }
 
 func SetupHotkey(sparkPath string) error {
-	bindPath := filepath.Join(os.Getenv("HOME"), ".config", "mango", "bind.conf")
+	bindPath := HomeFile(".config", "mango", "bind.conf")
 	bindLine := fmt.Sprintf("bind=%s,spawn,%s", Current.Hotkey, sparkPath)
 
 	data, err := os.ReadFile(bindPath)

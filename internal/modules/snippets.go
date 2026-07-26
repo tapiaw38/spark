@@ -6,9 +6,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/tapiaw38/spark/internal/config"
 )
 
-var snippetsPath = filepath.Join(os.Getenv("HOME"), ".config", "spark", "snippets.json")
+var snippetsPath = config.ConfigFile("snippets.json")
 
 type Snippet struct {
 	Keyword string `json:"keyword"`
@@ -60,10 +62,7 @@ func SnippetSearch(query string) []Result {
 			strings.Contains(strings.ToLower(s.Name), strings.ToLower(searchTerm)) {
 
 			snippet := s
-			preview := snippet.Content
-			if len(preview) > 40 {
-				preview = preview[:40] + "..."
-			}
+			preview := Truncate(snippet.Content, SnippetPreviewLen)
 			preview = strings.ReplaceAll(preview, "\n", " ")
 
 			results = append(results, Result{
@@ -82,7 +81,7 @@ func SnippetSearch(query string) []Result {
 			})
 		}
 
-		if len(results) >= 5 {
+		if len(results) >= MaxSnippetResults {
 			break
 		}
 	}

@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/tapiaw38/spark/internal/config"
 )
 
 func ClipboardSearch(query string) []Result {
@@ -63,9 +65,7 @@ func ClipboardSearch(query string) []Result {
 			continue
 		}
 
-		if len(preview) > 50 {
-			preview = preview[:50] + "..."
-		}
+		preview = Truncate(preview, ClipboardLen)
 
 		clipID := id
 		icon, desc := clipboardDisplay(preview, directPaste)
@@ -91,7 +91,7 @@ func ClipboardSearch(query string) []Result {
 			},
 		})
 
-		if len(results) >= 50 {
+		if len(results) >= MaxBrowsingResults {
 			break
 		}
 	}
@@ -176,7 +176,7 @@ func cacheClipboardImage(id string) string {
 	default:
 		return ""
 	}
-	dir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "clipboard")
+	dir := config.CacheSubdir("clipboard")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return ""
 	}
@@ -195,7 +195,7 @@ func colorSwatch(color string) string {
 	if err != nil || len(raw) != 3 {
 		return ""
 	}
-	dir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "swatches")
+	dir := config.CacheSubdir("swatches")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return ""
 	}

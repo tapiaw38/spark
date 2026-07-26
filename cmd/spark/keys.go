@@ -5,8 +5,6 @@ import (
 	"github.com/tapiaw38/spark/internal/modules"
 )
 
-const playerRefreshDelayMs = 300
-
 func activeList() *gtk.ListBox {
 	if inSpotifyMode && spotifyList != nil {
 		return spotifyList

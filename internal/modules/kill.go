@@ -38,7 +38,7 @@ func KillSearch(query string) []Result {
 			Icon:          "process-stop",
 			NavigateQuery: "kill confirm " + p.pid,
 		})
-		if len(out) >= 8 {
+		if len(out) >= MaxCompactResults {
 			break
 		}
 	}

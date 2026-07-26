@@ -9,6 +9,7 @@ import (
 
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v3"
+	"github.com/tapiaw38/spark/internal/config"
 	"github.com/tapiaw38/spark/internal/modules"
 )
 
@@ -152,7 +153,7 @@ func showFileOpWindow(op, sourceValue, targetValue string) {
 					path := filepath.Join(dir, entry.Name())
 					browser.Add(fileOpBrowserRow(entry.Name(), path, entry.IsDir(), targetEntry, refreshBrowser))
 					count++
-					if count >= 80 {
+					if count >= modules.MaxDirectoryEntries {
 						break
 					}
 				}
@@ -168,7 +169,7 @@ func showFileOpWindow(op, sourceValue, targetValue string) {
 	})
 	downloadsBtn := gtk.NewButtonWithLabel("Downloads")
 	downloadsBtn.Connect("clicked", func() {
-		refreshBrowser(filepath.Join(os.Getenv("HOME"), "Downloads"))
+		refreshBrowser(config.HomeFile("Downloads"))
 	})
 	chooseBtn := gtk.NewButtonWithLabel("Choose")
 	chooseBtn.Connect("clicked", func() {

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/tapiaw38/spark/internal/config"
 	"github.com/tapiaw38/spark/internal/history"
 )
 
@@ -51,7 +52,7 @@ func applicationDirs() []string {
 		dirs = append(dirs, dir)
 	}
 
-	add(filepath.Join(os.Getenv("HOME"), ".local/share/applications"))
+	add(config.DataHomeFile("applications"))
 	for _, dataDir := range strings.Split(os.Getenv("XDG_DATA_DIRS"), ":") {
 		if dataDir == "" {
 			continue
