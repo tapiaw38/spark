@@ -97,7 +97,7 @@ spark/
 ## Features & Prefixes
 
 | Prefix            | Feature                       | Example                                                        |
-| ----------------- | ----------------------------- | -------------------------------------------------------------- | ------------ | ----- |
+| ----------------- | ----------------------------- | -------------------------------------------------------------- |
 | (none)            | App search                    | `firefox`                                                      |
 | `>`               | Shell command                 | `> htop`                                                       |
 | `;`               | Snippet                       | `;email`                                                       |
@@ -105,10 +105,10 @@ spark/
 | `Tab`             | File actions                  | select file, press `Tab`                                       |
 | file op window    | Visual file ops               | Tab -> Rename/Copy/Move                                        |
 | `nav`             | Folder navigation             | `nav ~/Downloads`                                              |
-| `pick`            | Destination picker            | `pick copy source                                              | ~/Downloads` |
-| `rename`          | Rename file                   | `rename source                                                 | new-name`    |
-| `copy`            | Copy file                     | `copy source                                                   | target`      |
-| `move`            | Move file                     | `move source                                                   | target`      |
+| `pick`            | Destination picker            | `pick copy source \| ~/Downloads`                              |
+| `rename`          | Rename file                   | `rename source \| new-name`                                    |
+| `copy`            | Copy file                     | `copy source \| target`                                        |
+| `move`            | Move file                     | `move source \| target`                                        |
 | `undo`            | Undo last file operation      | `undo`                                                         |
 | `status`          | Last action/error             | `status`                                                       |
 | `buffer`          | File buffer                   | `buffer`                                                       |
@@ -117,7 +117,7 @@ spark/
 | `large all`       | Large Type all monitors       | `large all 555-1234`                                           |
 | `help`            | Help                          | `help`                                                         |
 | `contact`         | Contacts                      | `contact Ada`, `contact carddav`                               |
-| `email`           | Email composer + attachments  | `email contact                                                 | Subject      | Body` |
+| `email`           | Email composer + attachments  | `email contact \| Subject \| Body`                             |
 | `stats`           | Usage Stats                   | `stats`                                                        |
 | `sync`            | Sync Settings                 | `sync`, `sync import ~/spark-settings.zip`                     |
 | `clip`            | Clipboard                     | `clip`                                                         |
@@ -143,7 +143,7 @@ spark/
 | `kill`            | Kill process                  | `kill firefox`                                                 |
 | `screenshot`/`ss` | Screenshot (grim/slurp)       | `ss`                                                           |
 | `w`               | Windows or MangoWM workspaces | `w`, `w firefox`, `w 2`                                        |
-| `timer`           | Countdown → notification      | `timer 5m`                                                     |
+| `timer`           | Countdown -> notification     | `timer 5m`                                                     |
 | `wt`              | Weather from wttr.in          | `wt`, `wt Berlin`                                              |
 | `pass`            | Password store (pass)         | `pass github`                                                  |
 | `bm`              | Browser bookmarks             | `bm docs`                                                      |
