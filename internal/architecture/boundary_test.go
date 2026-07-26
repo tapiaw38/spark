@@ -1,4 +1,4 @@
-package commands_test
+package architecture_test
 
 import (
 	"os"
@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-func TestOnlyThisPackageImportsOSExec(t *testing.T) {
-	root := filepath.Join("..", "..", "..")
+func TestOnlyCommandsPlatformImportsOSExec(t *testing.T) {
+	root := filepath.Join("..", "..")
 	allowed := filepath.Join("internal", "platform", "commands")
 
 	var offenders []string
