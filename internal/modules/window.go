@@ -7,7 +7,6 @@ import (
 	"strings"
 )
 
-// WindowSearch lists open toplevel windows (via wlrctl) and focuses one.
 func WindowSearch(query string) []Result {
 	lower := strings.ToLower(strings.TrimSpace(query))
 	if lower != "w" && !strings.HasPrefix(lower, "w ") {
@@ -49,7 +48,7 @@ func WindowSearch(query string) []Result {
 			Title:  line,
 			Desc:   "Focus window",
 			Icon:   "preferences-system-windows",
-			Action: func() { exec.Command("wlrctl", "toplevel", "focus", matcher).Run() },
+			Action: func() { Run("wlrctl", "toplevel", "focus", matcher) },
 		})
 		if len(results) >= 10 {
 			break

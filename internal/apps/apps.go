@@ -16,7 +16,8 @@ type App struct {
 	Icon string
 }
 
-// Load reads all .desktop files from standard locations
+const quickSearchResultLimit = 6
+
 func Load() []App {
 	var apps []App
 	dirs := applicationDirs()
@@ -118,93 +119,82 @@ func cleanDesktopExec(execCmd string) string {
 	return strings.Join(clean, " ")
 }
 
-// QuickSearch does fast prefix match for short queries (1-2 chars)
-// ponytail: skip fuzzy scoring, just prefix match + history sort
+type scoredApp struct {
+	app   App
+	score int
+}
+
+func sortByScoreDescending(results []scoredApp) {
+	for i := 0; i < len(results)-1; i++ {
+		for j := i + 1; j < len(results); j++ {
+			if results[j].score > results[i].score {
+				results[i], results[j] = results[j], results[i]
+			}
+		}
+	}
+}
+
+func toApps(results []scoredApp) []App {
+	out := make([]App, len(results))
+	for i, r := range results {
+		out[i] = r.app
+	}
+	return out
+}
+
 func QuickSearch(apps []App, query string) []App {
 	if query == "" {
 		return nil
 	}
 	query = strings.ToLower(query)
 
-	type scored struct {
-		app   App
-		score int
-	}
-	var results []scored
-
+	var results []scoredApp
 	for _, app := range apps {
 		name := strings.ToLower(app.Name)
-		// Simple prefix match
-		if strings.HasPrefix(name, query) {
-			score := 100 + history.Score(app.Name)*3
-			results = append(results, scored{app, score})
-		} else if strings.Contains(name, " "+query) {
-			// Word start match
-			score := 50 + history.Score(app.Name)*3
-			results = append(results, scored{app, score})
+		switch {
+		case strings.HasPrefix(name, query):
+			results = append(results, scoredApp{app, 100 + history.Score(app.Name)*3})
+		case strings.Contains(name, " "+query):
+			results = append(results, scoredApp{app, 50 + history.Score(app.Name)*3})
 		}
 	}
 
-	// Sort by score descending (simple bubble, small N)
-	for i := 0; i < len(results)-1; i++ {
-		for j := i + 1; j < len(results); j++ {
-			if results[j].score > results[i].score {
-				results[i], results[j] = results[j], results[i]
-			}
-		}
+	sortByScoreDescending(results)
+	if len(results) > quickSearchResultLimit {
+		results = results[:quickSearchResultLimit]
 	}
-
-	// Limit to 6
-	if len(results) > 6 {
-		results = results[:6]
-	}
-
-	out := make([]App, len(results))
-	for i, r := range results {
-		out[i] = r.app
-	}
-	return out
+	return toApps(results)
 }
 
-// Search filters apps by fuzzy match, sorted by score
 func Search(apps []App, query string) []App {
 	if query == "" {
 		return apps
 	}
 	query = strings.ToLower(query)
 
-	type scored struct {
-		app   App
-		score int
-	}
-	var results []scored
-
+	var results []scoredApp
 	for _, app := range apps {
 		if score := fuzzyScore(strings.ToLower(app.Name), query); score > 0 {
-			// ponytail: history boost - each launch adds weight
 			score += history.Score(app.Name) * 3
-			results = append(results, scored{app, score})
+			results = append(results, scoredApp{app, score})
 		}
 	}
 
-	// Sort by score descending
-	for i := 0; i < len(results)-1; i++ {
-		for j := i + 1; j < len(results); j++ {
-			if results[j].score > results[i].score {
-				results[i], results[j] = results[j], results[i]
-			}
-		}
-	}
-
-	out := make([]App, len(results))
-	for i, r := range results {
-		out[i] = r.app
-	}
-	return out
+	sortByScoreDescending(results)
+	return toApps(results)
 }
 
-// fuzzyScore returns 0 if no match, higher score = better match
-// ponytail: simple subsequence match with bonuses for consecutive/start matches
+const (
+	fuzzyScoreCharMatch       = 1
+	fuzzyScoreStartOfString   = 5
+	fuzzyScoreAfterSeparator  = 3
+	fuzzyScoreConsecutiveStep = 2
+)
+
+func isWordSeparator(b byte) bool {
+	return b == ' ' || b == '-' || b == '_'
+}
+
 func fuzzyScore(name, query string) int {
 	if len(query) == 0 {
 		return 1
@@ -219,36 +209,32 @@ func fuzzyScore(name, query string) int {
 	prevMatch := -2
 
 	for ni := 0; ni < len(name) && qi < len(query); ni++ {
-		if name[ni] == query[qi] {
-			score += 1
-			// Bonus: start of string
-			if ni == 0 {
-				score += 5
-			}
-			// Bonus: after separator (space, dash, underscore)
-			if ni > 0 && (name[ni-1] == ' ' || name[ni-1] == '-' || name[ni-1] == '_') {
-				score += 3
-			}
-			// Bonus: consecutive
-			if ni == prevMatch+1 {
-				consecutive++
-				score += consecutive * 2
-			} else {
-				consecutive = 0
-			}
-			prevMatch = ni
-			qi++
+		if name[ni] != query[qi] {
+			continue
 		}
+		score += fuzzyScoreCharMatch
+		if ni == 0 {
+			score += fuzzyScoreStartOfString
+		}
+		if ni > 0 && isWordSeparator(name[ni-1]) {
+			score += fuzzyScoreAfterSeparator
+		}
+		if ni == prevMatch+1 {
+			consecutive++
+			score += consecutive * fuzzyScoreConsecutiveStep
+		} else {
+			consecutive = 0
+		}
+		prevMatch = ni
+		qi++
 	}
 
-	// All query chars matched?
 	if qi < len(query) {
 		return 0
 	}
 	return score
 }
 
-// Launch starts the app
 func Launch(app App) error {
 	parts := strings.Fields(app.Exec)
 	cmd := exec.Command(parts[0], parts[1:]...)

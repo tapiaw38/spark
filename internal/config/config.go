@@ -9,7 +9,6 @@ import (
 )
 
 type Config struct {
-	// Appearance
 	Width           int     `yaml:"width"`
 	MaxResults      int     `yaml:"max_results"`
 	BackgroundColor string  `yaml:"background_color"`
@@ -19,17 +18,14 @@ type Config struct {
 	TextColor       string  `yaml:"text_color"`
 	SelectionColor  string  `yaml:"selection_color"`
 
-	// Web shortcuts
 	WebShortcuts map[string]WebShortcut `yaml:"web_shortcuts"`
 
-	// Behavior
 	ShowIcons     bool   `yaml:"show_icons"`
 	IconSize      int    `yaml:"icon_size"`
 	MarginTop     int    `yaml:"margin_top"`
 	HistoryBoost  int    `yaml:"history_boost"`
 	SpellLanguage string `yaml:"spell_language"`
 
-	// Hotkey (for mango WM: SUPER,s or SUPER+SHIFT,space etc.)
 	Hotkey string `yaml:"hotkey"`
 }
 
@@ -72,7 +68,6 @@ func Load() error {
 
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		// No config file, use defaults and create one
 		return Save()
 	}
 
@@ -97,15 +92,12 @@ func Save() error {
 	return os.WriteFile(configPath, data, 0644)
 }
 
-// SetupHotkey updates mango WM bind.conf with configured hotkey
 func SetupHotkey(sparkPath string) error {
 	bindPath := filepath.Join(os.Getenv("HOME"), ".config", "mango", "bind.conf")
 	bindLine := fmt.Sprintf("bind=%s,spawn,%s", Current.Hotkey, sparkPath)
 
-	// Read existing config
 	data, err := os.ReadFile(bindPath)
 	if err != nil {
-		// Create new file with just the bind
 		os.MkdirAll(filepath.Dir(bindPath), 0755)
 		return os.WriteFile(bindPath, []byte(bindLine+"\n"), 0644)
 	}
@@ -114,14 +106,12 @@ func SetupHotkey(sparkPath string) error {
 	var newLines []string
 	found := false
 
-	// Remove old spark bindings, add new one
 	for _, line := range splitLines(content) {
 		if containsSparkBind(line) {
 			if !found {
 				newLines = append(newLines, bindLine)
 				found = true
 			}
-			// Skip old spark bind
 		} else {
 			newLines = append(newLines, line)
 		}
@@ -164,7 +154,6 @@ func joinLines(lines []string) string {
 }
 
 func containsSparkBind(line string) bool {
-	// Check if line is a spark binding
 	for i := 0; i < len(line); i++ {
 		if i+5 <= len(line) && line[i:i+5] == "spark" {
 			return true
@@ -173,7 +162,6 @@ func containsSparkBind(line string) bool {
 	return false
 }
 
-// GetCSS generates CSS from config
 func GetCSS() string {
 	c := Current
 	return fmt.Sprintf(`

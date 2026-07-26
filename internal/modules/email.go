@@ -7,7 +7,6 @@ import (
 	"strings"
 )
 
-// EmailSearch composes an email.
 func EmailSearch(query string) []Result {
 	q := strings.TrimSpace(query)
 	lower := strings.ToLower(q)
@@ -67,7 +66,7 @@ func EmailSearch(query string) []Result {
 
 func openEmailComposer(to, subject, body string) {
 	if exe, err := os.Executable(); err == nil {
-		exec.Command(exe, "--email-window", to, subject, body).Start()
+		Start(exe, "--email-window", to, subject, body)
 	}
 }
 
@@ -93,9 +92,7 @@ func SendEmailFull(to, subject, mailBody string, attachments []string) {
 	}
 	if len(attachments) == 0 && mailBody != "" {
 		link := "mailto:" + url.QueryEscape(to) + "?subject=" + url.QueryEscape(subject) + "&body=" + url.QueryEscape(mailBody)
-		if err := exec.Command("xdg-open", link).Start(); err != nil {
-			SetStatus(false, "Email failed: "+err.Error())
-		} else {
+		if Open(link) {
 			SetStatus(true, "Email compose opened")
 		}
 		return

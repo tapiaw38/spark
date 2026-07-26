@@ -9,10 +9,8 @@ import (
 	"time"
 )
 
-// ScreenshotSearch captures the screen via grim/slurp (Wayland).
 func ScreenshotSearch(query string) []Result {
-	q := strings.ToLower(strings.TrimSpace(query))
-	if q != "screenshot" && q != "ss" && !strings.HasPrefix(q, "screenshot ") && !strings.HasPrefix(q, "ss ") {
+	if _, ok := MatchCommand(query, "screenshot", "ss"); !ok {
 		return nil
 	}
 	if _, err := exec.LookPath("grim"); err != nil {
@@ -52,14 +50,14 @@ func shotPath() string {
 
 func grimTo(path string, area bool) {
 	if area {
-		exec.Command("sh", "-c", "grim -g \"$(slurp)\" "+shellQuote(path)).Start()
+		Start("sh", "-c", "grim -g \"$(slurp)\" "+shellQuote(path))
 		return
 	}
-	exec.Command("grim", path).Start()
+	Start("grim", path)
 }
 
 func grimClip() {
-	exec.Command("sh", "-c", "grim -g \"$(slurp)\" - | wl-copy").Start()
+	Start("sh", "-c", "grim -g \"$(slurp)\" - | wl-copy")
 }
 
 func shellQuote(s string) string {

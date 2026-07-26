@@ -4,12 +4,10 @@ import (
 	"encoding/xml"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
 
-// RecentSearch lists recently used local documents from GTK recent files.
 func RecentSearch(query string) []Result {
 	q := strings.TrimSpace(query)
 	lower := strings.ToLower(q)
@@ -47,7 +45,7 @@ func RecentSearch(query string) []Result {
 			Desc:  shortenPath(filepath.Dir(p)),
 			Icon:  getFileIcon(p),
 			Action: func() {
-				exec.Command("xdg-open", p).Start()
+				Open(p)
 			},
 		})
 	}

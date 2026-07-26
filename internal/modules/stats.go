@@ -2,17 +2,14 @@ package modules
 
 import (
 	"os"
-	"os/exec"
 	"sort"
 	"strings"
 
 	"github.com/tapiaw38/spark/internal/history"
 )
 
-// StatsSearch shows app usage stats.
 func StatsSearch(query string) []Result {
-	q := strings.ToLower(strings.TrimSpace(query))
-	if q != "stats" && q != "usage" {
+	if !MatchesAny(query, "stats", "usage") {
 		return nil
 	}
 
@@ -49,7 +46,7 @@ func StatsSearch(query string) []Result {
 			Icon:  "utilities-system-monitor",
 			Action: func() {
 				if exe, err := os.Executable(); err == nil {
-					exec.Command(exe, "--stats-window").Start()
+					Start(exe, "--stats-window")
 				}
 			},
 		},

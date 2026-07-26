@@ -3,12 +3,10 @@ package modules
 import (
 	"encoding/json"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
 
-// BookmarksSearch searches Chromium-family browser bookmarks.
 func BookmarksSearch(query string) []Result {
 	lower := strings.ToLower(strings.TrimSpace(query))
 	if lower != "bm" && !strings.HasPrefix(lower, "bm ") {
@@ -31,7 +29,7 @@ func BookmarksSearch(query string) []Result {
 			Title:  title,
 			Desc:   bm.url,
 			Icon:   "user-bookmarks",
-			Action: func() { exec.Command("xdg-open", bm.url).Start() },
+			Action: func() { Open(bm.url) },
 		})
 		if len(out) >= 8 {
 			break

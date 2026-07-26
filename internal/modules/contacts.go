@@ -14,7 +14,6 @@ type contact struct {
 	path  string
 }
 
-// ContactsSearch finds local vCard contacts.
 func ContactsSearch(query string) []Result {
 	q := strings.TrimSpace(query)
 	lower := strings.ToLower(q)
@@ -87,7 +86,7 @@ func ContactsSearch(query string) []Result {
 				Desc:  shortenPath(contact.path),
 				Icon:  "x-office-address-book",
 				Action: func() {
-					exec.Command("xdg-open", contact.path).Start()
+					Open(contact.path)
 				},
 			})
 		}
@@ -101,7 +100,7 @@ func contactSyncResults() []Result {
 		Title:  "CardDAV via vdirsyncer",
 		Desc:   "Run vdirsyncer sync, then contact <name>",
 		Icon:   "emblem-synchronizing",
-		Action: func() { exec.Command("vdirsyncer", "sync").Start() },
+		Action: func() { Start("vdirsyncer", "sync") },
 	}}
 	if _, err := exec.LookPath("khal"); err == nil {
 		results = append(results, Result{
@@ -109,7 +108,7 @@ func contactSyncResults() []Result {
 			Title:  "Open khal Contacts",
 			Desc:   "khal interactive contact backend",
 			Icon:   "x-office-address-book",
-			Action: func() { exec.Command("foot", "khal", "interactive").Start() },
+			Action: func() { Start("foot", "khal", "interactive") },
 		})
 	}
 	results = append(results, Result{
@@ -118,7 +117,7 @@ func contactSyncResults() []Result {
 		Desc:  "~/.local/share/contacts",
 		Icon:  "folder-open",
 		Action: func() {
-			exec.Command("xdg-open", filepath.Join(os.Getenv("HOME"), ".local/share/contacts")).Start()
+			Start("xdg-open", filepath.Join(os.Getenv("HOME"), ".local/share/contacts"))
 		},
 	})
 	return results

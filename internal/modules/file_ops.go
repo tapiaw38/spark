@@ -18,7 +18,6 @@ type fileUndo struct {
 	Target string `json:"target"`
 }
 
-// FileOperationSearch runs file operations generated from file actions.
 func FileOperationSearch(query string) []Result {
 	if result := UndoSearch(query); result != nil {
 		return result
@@ -59,8 +58,7 @@ func FileOperationSearch(query string) []Result {
 }
 
 func UndoSearch(query string) []Result {
-	q := strings.ToLower(strings.TrimSpace(query))
-	if q != "undo" {
+	if !MatchesAny(query, "undo") {
 		return nil
 	}
 	undo := currentFileUndo()

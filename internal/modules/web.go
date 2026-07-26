@@ -8,7 +8,6 @@ import (
 	"github.com/tapiaw38/spark/internal/config"
 )
 
-// WebSearch checks for web shortcuts like "g query"
 func WebSearch(query string) []Result {
 	parts := strings.SplitN(query, " ", 2)
 	if len(parts) < 2 {
@@ -37,7 +36,6 @@ func WebSearch(query string) []Result {
 	}}
 }
 
-// FallbackWebSearch provides web search when no results found
 func FallbackWebSearch(query string) []Result {
 	if query == "" {
 		return nil

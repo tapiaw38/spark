@@ -1,11 +1,7 @@
 package modules
 
-import "strings"
-
-// HelpSearch lists built-in commands.
 func HelpSearch(query string) []Result {
-	q := strings.ToLower(strings.TrimSpace(query))
-	if q != "help" && q != "?" {
+	if !MatchesAny(query, "help", "?") {
 		return nil
 	}
 

@@ -9,13 +9,11 @@ import (
 	"strconv"
 )
 
-// CalcSearch evaluates math expressions
 func CalcSearch(query string) []Result {
 	if len(query) < 1 {
 		return nil
 	}
 
-	// Try to evaluate as math expression
 	result, err := evalExpr(query)
 	if err != nil {
 		return nil
@@ -28,7 +26,6 @@ func CalcSearch(query string) []Result {
 		Desc:  "Copy to clipboard",
 		Icon:  "accessories-calculator",
 		Action: func() {
-			// ponytail: wl-copy for Wayland clipboard
 			cmd := exec.Command("wl-copy", resultStr)
 			cmd.Start()
 		},
@@ -36,7 +33,6 @@ func CalcSearch(query string) []Result {
 }
 
 func evalExpr(expr string) (float64, error) {
-	// ponytail: use Go parser for safe math eval
 	node, err := parser.ParseExpr(expr)
 	if err != nil {
 		return 0, err

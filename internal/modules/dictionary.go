@@ -14,7 +14,6 @@ var (
 	dictCacheMu sync.RWMutex
 )
 
-// DictionarySearch looks up word definitions
 func DictionarySearch(query string) []Result {
 	var word string
 	if strings.HasPrefix(strings.ToLower(query), "define ") {
@@ -29,7 +28,6 @@ func DictionarySearch(query string) []Result {
 		return nil
 	}
 
-	// Check cache first
 	dictCacheMu.RLock()
 	if cached, ok := dictCache[word]; ok {
 		dictCacheMu.RUnlock()
@@ -39,13 +37,12 @@ func DictionarySearch(query string) []Result {
 			Desc:  cached,
 			Icon:  "accessories-dictionary",
 			Action: func() {
-				exec.Command("wl-copy", cached).Run()
+				Run("wl-copy", cached)
 			},
 		}}
 	}
 	dictCacheMu.RUnlock()
 
-	// Try local dict (fast)
 	if def := localDict(word); def != "" {
 		dictCacheMu.Lock()
 		dictCache[word] = def
@@ -57,12 +54,11 @@ func DictionarySearch(query string) []Result {
 			Desc:  def,
 			Icon:  "accessories-dictionary",
 			Action: func() {
-				exec.Command("wl-copy", def).Run()
+				Run("wl-copy", def)
 			},
 		}}
 	}
 
-	// Async online lookup - return placeholder, cache when done
 	go func() {
 		if def := onlineDict(word); def != "" {
 			dictCacheMu.Lock()
@@ -85,7 +81,6 @@ func localDict(word string) string {
 		return ""
 	}
 
-	// Timeout 200ms
 	cmd := exec.Command("dict", "-d", "wn", word)
 	done := make(chan []byte, 1)
 	go func() {

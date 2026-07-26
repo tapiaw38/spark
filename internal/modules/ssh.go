@@ -7,13 +7,12 @@ import (
 	"strings"
 )
 
-// SSHSearch lists hosts from ~/.ssh/config and connects in a terminal.
 func SSHSearch(query string) []Result {
-	q := strings.ToLower(strings.TrimSpace(query))
-	if q != "ssh" && !strings.HasPrefix(q, "ssh ") {
+	arg, ok := MatchCommand(query, "ssh")
+	if !ok {
 		return nil
 	}
-	filter := strings.TrimSpace(strings.TrimPrefix(q, "ssh"))
+	filter := strings.ToLower(arg) // hosts are matched case-insensitively
 
 	var out []Result
 	hosts, err := sshHosts()

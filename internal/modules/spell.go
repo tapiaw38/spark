@@ -9,7 +9,6 @@ import (
 	"github.com/tapiaw38/spark/internal/config"
 )
 
-// SpellSearch checks spelling and suggests corrections.
 func SpellSearch(query string) []Result {
 	word, lang, ok := spellTerm(query)
 	if !ok || len(word) < 2 {
@@ -88,7 +87,7 @@ func parseSpellOutput(word, cmdName, lang string) *Result {
 				Title:  word + " is spelled correctly",
 				Desc:   "Copy word",
 				Icon:   "accessories-dictionary",
-				Action: func() { exec.Command("wl-copy", word).Run() },
+				Action: func() { Run("wl-copy", word) },
 			}
 		}
 		if strings.HasPrefix(line, "&") || strings.HasPrefix(line, "#") {
@@ -105,7 +104,7 @@ func parseSpellOutput(word, cmdName, lang string) *Result {
 				Title:  title,
 				Desc:   desc,
 				Icon:   "accessories-dictionary",
-				Action: func() { exec.Command("wl-copy", copyText).Run() },
+				Action: func() { Run("wl-copy", copyText) },
 			}
 		}
 	}

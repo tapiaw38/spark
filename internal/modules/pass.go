@@ -8,7 +8,6 @@ import (
 	"strings"
 )
 
-// PassSearch searches the pass(1) password store and copies entries.
 func PassSearch(query string) []Result {
 	lower := strings.ToLower(strings.TrimSpace(query))
 	if lower != "pass" && !strings.HasPrefix(lower, "pass ") {

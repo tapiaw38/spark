@@ -2,11 +2,9 @@ package modules
 
 import (
 	"os"
-	"os/exec"
 	"strings"
 )
 
-// LargeTypeSearch opens text in a large overlay.
 func LargeTypeSearch(query string) []Result {
 	text, ok := largeTypeText(query)
 	if !ok {
@@ -38,7 +36,7 @@ func LargeTypeSearch(query string) []Result {
 					if allMonitors {
 						args = []string{"--large-type-all", text}
 					}
-					exec.Command(exe, args...).Start()
+					Start(exe, args...)
 				}
 			},
 		},

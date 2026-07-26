@@ -9,9 +9,7 @@ import (
 	"strings"
 )
 
-// GetPreview returns preview content for a result
 func GetPreview(r Result) string {
-	// Use explicit preview if set
 	if r.Preview != "" {
 		return r.Preview
 	}
@@ -20,7 +18,6 @@ func GetPreview(r Result) string {
 	case "file":
 		return previewFile(r.Title, r.Desc)
 	case "snippet":
-		// Already shown in Desc
 		return ""
 	case "clipboard":
 		return r.Title // Full clipboard content
@@ -33,7 +30,6 @@ func GetPreview(r Result) string {
 	}
 }
 
-// GetPreviewImage returns a local image path for visual previews.
 func GetPreviewImage(r Result) string {
 	return GetPreviewImageAt(r, 1, 360)
 }
@@ -59,7 +55,6 @@ func GetPreviewImageAt(r Result, page, scale int) string {
 	return GetFilePath(r)
 }
 
-// GetFilePath returns the local path represented by a file result.
 func GetFilePath(r Result) string {
 	if r.Type != "file" && r.Type != "directory" {
 		return ""
@@ -75,7 +70,6 @@ func previewFile(name, dir string) string {
 
 	ext := strings.ToLower(filepath.Ext(name))
 
-	// Text files - show first lines
 	switch ext {
 	case ".txt", ".md", ".go", ".py", ".js", ".ts", ".json", ".yaml", ".yml",
 		".toml", ".sh", ".bash", ".zsh", ".html", ".css", ".rs", ".c", ".cpp",
@@ -152,9 +146,6 @@ func expandHome(path string) string {
 	return path
 }
 
-// IsImageFile reports whether name has a plain image extension (cheap check,
-// no subprocess) — used to decide if a drag icon can be built without
-// triggering an expensive PDF/office conversion.
 func IsImageFile(name string) bool {
 	return isImageFile(name)
 }
@@ -177,7 +168,6 @@ func previewTextFile(path string) string {
 	content := string(data)
 	lines := strings.Split(content, "\n")
 
-	// First 5 lines, max 200 chars
 	var preview []string
 	chars := 0
 	for i, line := range lines {
@@ -195,7 +185,6 @@ func previewTextFile(path string) string {
 }
 
 func previewPDF(path string) string {
-	// Use pdftotext if available
 	if _, err := exec.LookPath("pdftotext"); err != nil {
 		return "[PDF file]"
 	}
@@ -235,7 +224,7 @@ func previewPDFImageAt(path string, page, scale int) string {
 	if _, err := os.Stat(png); err == nil {
 		return png
 	}
-	exec.Command("pdftoppm", "-png", "-singlefile", "-f", stringInt(page), "-l", stringInt(page), "-scale-to", stringInt(scale), path, base).Run()
+	Run("pdftoppm", "-png", "-singlefile", "-f", stringInt(page), "-l", stringInt(page), "-scale-to", stringInt(scale), path, base)
 	if _, err := os.Stat(png); err == nil {
 		return png
 	}
@@ -323,7 +312,6 @@ func hasPDF(dir string) bool {
 }
 
 func previewAudio(path string) string {
-	// Use ffprobe if available
 	if _, err := exec.LookPath("ffprobe"); err != nil {
 		return "[Audio file]"
 	}
@@ -350,7 +338,6 @@ func formatSize(bytes int64) string {
 	}
 	units := []string{"KB", "MB", "GB", "TB"}
 	size := float64(bytes) / float64(div)
-	// Simple format
 	whole := int(size)
 	frac := int((size - float64(whole)) * 10)
 	return string(rune('0'+whole/10)) + string(rune('0'+whole%10)) + "." + string(rune('0'+frac)) + " " + units[exp]

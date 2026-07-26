@@ -8,7 +8,6 @@ import (
 
 var historyPath = filepath.Join(os.Getenv("HOME"), ".local/share/spark/history.json")
 
-// counts maps app name -> launch count
 var counts map[string]int
 
 func init() {
@@ -30,18 +29,15 @@ func save() {
 	os.WriteFile(historyPath, data, 0644)
 }
 
-// Record increments launch count for app
 func Record(appName string) {
 	counts[appName]++
 	save()
 }
 
-// Score returns launch count for app (used as boost in search)
 func Score(appName string) int {
 	return counts[appName]
 }
 
-// Snapshot returns launch counts.
 func Snapshot() map[string]int {
 	out := make(map[string]int, len(counts))
 	for k, v := range counts {

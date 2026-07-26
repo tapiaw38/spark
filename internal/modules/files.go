@@ -17,8 +17,6 @@ var (
 	fileCacheTime time.Time
 )
 
-// FileSearch finds files matching query using fd or find.
-// Requires "f " prefix to avoid slow search on every keystroke.
 func FileSearch(query string) []Result {
 	return FileSearchContext(context.Background(), query)
 }
@@ -33,7 +31,6 @@ func FileSearchContext(ctx context.Context, query string) []Result {
 		return FileLoading(query)
 	}
 
-	// Check cache (valid for 5 seconds)
 	fileCacheMu.Lock()
 	if term == fileCacheTerm && time.Since(fileCacheTime) < 5*time.Second {
 		result := fileCache
@@ -42,10 +39,8 @@ func FileSearchContext(ctx context.Context, query string) []Result {
 	}
 	fileCacheMu.Unlock()
 
-	// Run search
 	results := doFileSearch(ctx, term)
 
-	// Update cache
 	fileCacheMu.Lock()
 	fileCache = results
 	fileCacheTerm = term
@@ -137,7 +132,7 @@ func doFileSearch(ctx context.Context, term string) []Result {
 			Desc:  shortenPath(dir),
 			Icon:  icon,
 			Action: func() {
-				exec.Command("xdg-open", p).Start()
+				Open(p)
 			},
 		})
 	}

@@ -12,8 +12,6 @@ import (
 	"time"
 )
 
-// DevToolsSearch handles encoding/hashing/id helpers:
-// b64, b64d, url, urld, hash, uuid, epoch.
 func DevToolsSearch(query string) []Result {
 	q := strings.TrimSpace(query)
 	if q == "" {

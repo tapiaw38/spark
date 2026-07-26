@@ -4,13 +4,11 @@ import (
 	"archive/zip"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 )
 
-// SyncSearch exposes settings paths for external sync tools.
 func SyncSearch(query string) []Result {
 	q := strings.ToLower(strings.TrimSpace(query))
 	if q != "sync" && q != "settings sync" && !strings.HasPrefix(q, "sync import ") {
@@ -47,7 +45,7 @@ func SyncSearch(query string) []Result {
 			Desc:  configDir,
 			Icon:  "folder-open",
 			Action: func() {
-				exec.Command("xdg-open", configDir).Start()
+				Open(configDir)
 			},
 		},
 		{
@@ -111,7 +109,7 @@ func SyncSearch(query string) []Result {
 			Desc:  "http://127.0.0.1:8384",
 			Icon:  "emblem-synchronizing",
 			Action: func() {
-				exec.Command("xdg-open", "http://127.0.0.1:8384").Start()
+				Open("http://127.0.0.1:8384")
 			},
 		},
 		{

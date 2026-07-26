@@ -1,7 +1,6 @@
 package modules
 
 import (
-	"strings"
 	"sync"
 )
 
@@ -19,8 +18,7 @@ func SetStatus(ok bool, message string) {
 }
 
 func StatusSearch(query string) []Result {
-	q := strings.ToLower(strings.TrimSpace(query))
-	if q != "status" && q != "last" {
+	if !MatchesAny(query, "status", "last") {
 		return nil
 	}
 	statusMu.Lock()

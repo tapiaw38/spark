@@ -1,27 +1,37 @@
 package modules
 
-import "os/exec"
+import (
+	"os/exec"
+	"strings"
+)
+
+var clipboardWriters = [][]string{
+	{"wl-copy"},
+	{"xclip", "-selection", "clipboard"},
+	{"xsel", "--clipboard", "--input"},
+}
+
+var terminalExecArgs = map[string][]string{
+	"gnome-terminal": {"--"},
+}
+
+var terminals = []string{"ghostty", "alacritty", "kitty", "foot", "gnome-terminal"}
 
 func copyToClipboard(text string) {
-	if cmd := exec.Command("wl-copy"); runClipboard(cmd, text) {
-		SetStatus(true, "Copied to clipboard")
-		return
-	}
-	if cmd := exec.Command("xclip", "-selection", "clipboard"); runClipboard(cmd, text) {
-		SetStatus(true, "Copied to clipboard")
-		return
-	}
-	if cmd := exec.Command("xsel", "--clipboard", "--input"); runClipboard(cmd, text) {
-		SetStatus(true, "Copied to clipboard")
-		return
+	for _, writer := range clipboardWriters {
+		if writeClipboard(writer[0], writer[1:], text) {
+			SetStatus(true, "Copied to clipboard")
+			return
+		}
 	}
 	SetStatus(false, "Clipboard copy failed: install wl-clipboard, xclip, or xsel")
 }
 
-func runClipboard(cmd *exec.Cmd, text string) bool {
-	if _, err := exec.LookPath(cmd.Path); err != nil {
+func writeClipboard(name string, args []string, text string) bool {
+	if _, err := exec.LookPath(name); err != nil {
 		return false
 	}
+	cmd := exec.Command(name, args...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return false
@@ -35,15 +45,16 @@ func runClipboard(cmd *exec.Cmd, text string) bool {
 }
 
 func openTerminal(command string) {
-	for _, term := range []string{"ghostty", "alacritty", "kitty", "foot", "gnome-terminal"} {
+	for _, term := range terminals {
 		if _, err := exec.LookPath(term); err != nil {
 			continue
 		}
-		if term == "gnome-terminal" {
-			exec.Command(term, "--", "sh", "-c", command).Start()
-		} else {
-			exec.Command(term, "-e", "sh", "-c", command).Start()
+		execFlag := "-e"
+		if flags, ok := terminalExecArgs[term]; ok {
+			execFlag = flags[0]
 		}
+		Start(term, execFlag, "sh", "-c", command)
 		return
 	}
+	SetStatus(false, "No terminal found: install one of "+strings.Join(terminals, ", "))
 }

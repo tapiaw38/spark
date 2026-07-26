@@ -33,13 +33,11 @@ type youtubeThumbnail struct {
 	URL string `json:"url"`
 }
 
-// IsYouTubeQuery returns true if query triggers YouTube result mode.
 func IsYouTubeQuery(query string) bool {
 	q := strings.ToLower(strings.TrimSpace(query))
 	return q == "yt" || q == "youtube" || strings.HasPrefix(q, "yt ") || strings.HasPrefix(q, "youtube ")
 }
 
-// YouTubeSearch returns video results with cached thumbnails.
 func YouTubeSearch(query string) []Result {
 	searchQuery := strings.TrimSpace(query)
 	for _, prefix := range []string{"youtube ", "yt "} {
@@ -97,7 +95,7 @@ func YouTubeSearch(query string) []Result {
 			Preview:         videoURL,
 			PreviewImageURL: youtubeThumbnailURL(v),
 			Action: func() {
-				exec.Command("xdg-open", videoURL).Start()
+				Open(videoURL)
 			},
 		})
 	}
@@ -204,7 +202,7 @@ func youtubeFallback(title, desc, link string) Result {
 		Desc:  desc,
 		Icon:  "youtube",
 		Action: func() {
-			exec.Command("xdg-open", link).Start()
+			Open(link)
 		},
 	}
 }

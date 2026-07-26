@@ -25,7 +25,6 @@ func init() {
 func loadSnippets() {
 	data, err := os.ReadFile(snippetsPath)
 	if err != nil {
-		// Create default snippets file
 		snippets = []Snippet{
 			{Keyword: ";email", Content: "tu@email.com", Name: "Email"},
 			{Keyword: ";tel", Content: "+54 9 XXX XXX XXXX", Name: "Teléfono"},
@@ -45,7 +44,6 @@ func saveSnippets() {
 	os.WriteFile(snippetsPath, data, 0644)
 }
 
-// SnippetSearch finds snippets matching query
 func SnippetSearch(query string) []Result {
 	if !strings.HasPrefix(query, ";") && !strings.HasPrefix(strings.ToLower(query), "snip") {
 		return nil
@@ -75,12 +73,10 @@ func SnippetSearch(query string) []Result {
 				Icon:  "edit-paste",
 				Action: func() {
 					content := expandSnippet(snippet.Content)
-					// Copy to clipboard and paste
 					cmd := exec.Command("wl-copy", content)
 					cmd.Run()
-					// Simulate paste with wtype
 					if _, err := exec.LookPath("wtype"); err == nil {
-						exec.Command("wtype", "-M", "ctrl", "v", "-m", "ctrl").Run()
+						Run("wtype", "-M", "ctrl", "v", "-m", "ctrl")
 					}
 				},
 			})
@@ -95,7 +91,6 @@ func SnippetSearch(query string) []Result {
 }
 
 func expandSnippet(content string) string {
-	// Replace dynamic placeholders
 	content = strings.ReplaceAll(content, "{{DATE}}", currentDate())
 	content = strings.ReplaceAll(content, "{{TIME}}", currentTime())
 	return content

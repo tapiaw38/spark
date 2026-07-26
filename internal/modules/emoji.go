@@ -65,13 +65,12 @@ var emojiTable = []struct{ char, keywords string }{
 	{"🎯", "target dart goal"},
 }
 
-// EmojiSearch handles "emoji <query>" and copies the chosen emoji.
 func EmojiSearch(query string) []Result {
-	q := strings.ToLower(strings.TrimSpace(query))
-	if q != "emoji" && !strings.HasPrefix(q, "emoji ") {
+	arg, ok := MatchCommand(query, "emoji")
+	if !ok {
 		return nil
 	}
-	term := strings.TrimSpace(strings.TrimPrefix(q, "emoji"))
+	term := strings.ToLower(arg) // keywords are matched case-insensitively
 
 	var out []Result
 	for _, e := range emojiTable {

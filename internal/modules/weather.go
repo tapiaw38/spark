@@ -7,7 +7,6 @@ import (
 	"strings"
 )
 
-// WeatherSearch shows current weather from wttr.in.
 func WeatherSearch(query string) []Result {
 	if !IsWeatherQuery(query) {
 		return nil
@@ -65,7 +64,7 @@ func weatherResult(query, desc string, copyOnEnter bool) []Result {
 			}
 			text, err := currentWeather(page)
 			if err == nil && text != "" {
-				if notifyErr := exec.Command("notify-send", "Weather", text).Run(); notifyErr == nil {
+				if Run("notify-send", "Weather", text) {
 					SetStatus(true, text)
 					return
 				}
@@ -74,7 +73,7 @@ func weatherResult(query, desc string, copyOnEnter bool) []Result {
 				return
 			}
 			SetStatus(false, "Weather failed; opening browser")
-			exec.Command("xdg-open", page).Start()
+			Open(page)
 		},
 	}}
 }

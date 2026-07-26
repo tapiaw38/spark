@@ -17,7 +17,6 @@ var (
 	fileBufferMu sync.Mutex
 )
 
-// FileActions returns actions for a selected file result.
 func FileActions(path string) []Result {
 	if path == "" {
 		return nil
@@ -30,7 +29,7 @@ func FileActions(path string) []Result {
 			Desc:  path,
 			Icon:  "document-open",
 			Action: func() {
-				exec.Command("xdg-open", path).Start()
+				Open(path)
 			},
 		},
 		{
@@ -110,10 +109,8 @@ func FileActions(path string) []Result {
 	}
 }
 
-// FileBufferSearch lists buffered files and buffer actions.
 func FileBufferSearch(query string) []Result {
-	q := strings.ToLower(strings.TrimSpace(query))
-	if q != "buffer" && q != "buf" && !strings.HasPrefix(q, "buffer ") && !strings.HasPrefix(q, "buf ") {
+	if _, ok := MatchCommand(query, "buffer", "buf"); !ok {
 		return nil
 	}
 
@@ -136,7 +133,7 @@ func FileBufferSearch(query string) []Result {
 			Icon:  "document-open",
 			Action: func() {
 				for _, p := range FileBuffer() {
-					exec.Command("xdg-open", p).Start()
+					Open(p)
 				}
 			},
 		},
@@ -190,7 +187,7 @@ func FileBufferSearch(query string) []Result {
 			Desc:  shortenPath(filepath.Dir(p)),
 			Icon:  getFileIcon(p),
 			Action: func() {
-				exec.Command("xdg-open", p).Start()
+				Open(p)
 			},
 		})
 	}
@@ -252,10 +249,10 @@ func saveFileBufferLocked() {
 func revealFile(path string) {
 	if _, err := exec.LookPath("dbus-send"); err == nil {
 		uri := (&url.URL{Scheme: "file", Path: filepath.ToSlash(path)}).String()
-		exec.Command("dbus-send", "--session", "--dest=org.freedesktop.FileManager1", "--type=method_call", "/org/freedesktop/FileManager1", "org.freedesktop.FileManager1.ShowItems", "array:string:"+uri, "string:").Start()
+		Start("dbus-send", "--session", "--dest=org.freedesktop.FileManager1", "--type=method_call", "/org/freedesktop/FileManager1", "org.freedesktop.FileManager1.ShowItems", "array:string:"+uri, "string:")
 		return
 	}
-	exec.Command("xdg-open", filepath.Dir(path)).Start()
+	Start("xdg-open", filepath.Dir(path))
 }
 
 func copyText(text string) {
@@ -271,12 +268,12 @@ func moveToTrash(path string) {
 		}
 		return
 	}
-	exec.Command("kioclient6", "move", path, "trash:/").Run()
+	Run("kioclient6", "move", path, "trash:/")
 }
 
 func openFileOpWindow(op, source, target string) {
 	if exe, err := os.Executable(); err == nil {
-		exec.Command(exe, "--file-op-window", op, source, target).Start()
+		Start(exe, "--file-op-window", op, source, target)
 	}
 }
 

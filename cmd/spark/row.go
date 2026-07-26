@@ -1,0 +1,170 @@
+package main
+
+import (
+	"net/url"
+	"path/filepath"
+
+	"github.com/diamondburned/gotk4/pkg/gdk/v3"
+	"github.com/diamondburned/gotk4/pkg/gdkpixbuf/v2"
+	"github.com/diamondburned/gotk4/pkg/glib/v2"
+	"github.com/diamondburned/gotk4/pkg/gtk/v3"
+	"github.com/diamondburned/gotk4/pkg/pango"
+	"github.com/tapiaw38/spark/internal/config"
+	"github.com/tapiaw38/spark/internal/modules"
+)
+
+const dragIconSize = 96
+
+func createResultRow(r modules.Result) *gtk.ListBoxRow {
+	row := gtk.NewListBoxRow()
+	row.SetName("spark-row")
+
+	hbox := gtk.NewBox(gtk.OrientationHorizontal, 8)
+	hbox.SetMarginStart(8)
+	hbox.SetMarginEnd(8)
+	hbox.SetMarginTop(8)
+	hbox.SetMarginBottom(8)
+
+	if config.Current.ShowIcons {
+		hbox.PackStart(resultIcon(r), false, false, 0)
+	}
+
+	vbox := gtk.NewBox(gtk.OrientationVertical, 2)
+
+	title := gtk.NewLabel(r.Title)
+	title.SetXAlign(0)
+	title.SetName("spark-title")
+	title.SetEllipsize(pango.EllipsizeEnd)
+	title.SetMaxWidthChars(50)
+	vbox.PackStart(title, false, false, 0)
+
+	if r.Desc != "" {
+		desc := gtk.NewLabel(r.Desc)
+		desc.SetXAlign(0)
+		desc.SetName("spark-desc")
+		desc.SetEllipsize(pango.EllipsizeEnd)
+		desc.SetMaxWidthChars(60)
+		vbox.PackStart(desc, false, false, 0)
+	}
+
+	hbox.PackStart(vbox, true, true, 0)
+
+	eventBox := gtk.NewEventBox()
+	eventBox.SetVisibleWindow(false)
+	eventBox.Add(hbox)
+	row.Add(eventBox)
+	setupFileDragSource(eventBox, r)
+	return row
+}
+
+func resultIcon(r modules.Result) gtk.Widgetter {
+	if r.IconText != "" {
+		icon := gtk.NewLabel(r.IconText)
+		icon.SetName("spark-icon-text")
+		icon.SetSizeRequest(config.Current.IconSize+8, config.Current.IconSize+8)
+		icon.SetXAlign(0.5)
+		icon.SetYAlign(0.5)
+		return icon
+	}
+	return loadIcon(r.Icon, config.Current.IconSize)
+}
+
+type dragSourceWidget interface {
+	DragSourceSet(gdk.ModifierType, []gtk.TargetEntry, gdk.DragAction)
+	DragSourceSetIconPixbuf(*gdkpixbuf.Pixbuf)
+	ConnectDragDataGet(func(context *gdk.DragContext, data *gtk.SelectionData, info, time uint)) glib.SignalHandle
+	ConnectDragBegin(func(context *gdk.DragContext)) glib.SignalHandle
+}
+
+func setupFileDragSource(widget dragSourceWidget, r modules.Result) {
+	path := modules.GetFilePath(r)
+	if path == "" {
+		return
+	}
+
+	targets := []gtk.TargetEntry{
+		*gtk.NewTargetEntry("text/uri-list", 0, dragInfoURI),
+		*gtk.NewTargetEntry("text/plain", 0, dragInfoText),
+		*gtk.NewTargetEntry("UTF8_STRING", 0, dragInfoText),
+		*gtk.NewTargetEntry("STRING", 0, dragInfoText),
+	}
+	widget.DragSourceSet(gdk.Button1Mask, targets, gdk.ActionCopy)
+
+	if modules.IsImageFile(r.Title) {
+		widget.ConnectDragBegin(func(context *gdk.DragContext) {
+			imagePath := modules.GetFilePath(r)
+			if imagePath == "" {
+				return
+			}
+			if pb, err := gdkpixbuf.NewPixbufFromFileAtScale(imagePath, dragIconSize, dragIconSize, true); err == nil {
+				gtk.DragSetIconPixbuf(context, pb, 0, 0)
+			}
+		})
+	}
+
+	widget.ConnectDragDataGet(func(_ *gdk.DragContext, data *gtk.SelectionData, info, _ uint) {
+		absPath := absolutePath(path)
+		switch info {
+		case dragInfoURI:
+			data.SetURIs([]string{fileURI(absPath)})
+		default:
+			data.SetText(absPath)
+		}
+	})
+}
+
+func absolutePath(path string) string {
+	if abs, err := filepath.Abs(path); err == nil {
+		return abs
+	}
+	return path
+}
+
+func fileURI(path string) string {
+	return (&url.URL{Scheme: "file", Path: filepath.ToSlash(path)}).String()
+}
+
+func loadIcon(iconName string, size int) *gtk.Image {
+	if iconName == "" {
+		return nil
+	}
+
+	if pixbuf, cached := lookupCachedIcon(iconName); cached {
+		if pixbuf != nil {
+			return gtk.NewImageFromPixbuf(pixbuf)
+		}
+		return nil
+	}
+
+	pixbuf := loadIconPixbuf(iconName, size)
+	iconCacheMu.Lock()
+	iconCache[iconName] = pixbuf
+	iconCacheMu.Unlock()
+
+	if pixbuf != nil {
+		return gtk.NewImageFromPixbuf(pixbuf)
+	}
+	return nil
+}
+
+func lookupCachedIcon(name string) (*gdkpixbuf.Pixbuf, bool) {
+	iconCacheMu.RLock()
+	defer iconCacheMu.RUnlock()
+	pixbuf, ok := iconCache[name]
+	return pixbuf, ok
+}
+
+func loadIconPixbuf(iconName string, size int) *gdkpixbuf.Pixbuf {
+	if iconName[0] == '/' {
+		pb, err := gdkpixbuf.NewPixbufFromFileAtSize(iconName, size, size)
+		if err != nil {
+			return nil
+		}
+		return pb
+	}
+	pb, err := gtk.IconThemeGetDefault().LoadIcon(iconName, size, gtk.IconLookupForceSize)
+	if err != nil {
+		return nil
+	}
+	return pb
+}

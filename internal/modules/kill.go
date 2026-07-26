@@ -7,7 +7,6 @@ import (
 	"strings"
 )
 
-// KillSearch lists running processes matching a name and sends SIGTERM.
 func KillSearch(query string) []Result {
 	lower := strings.ToLower(strings.TrimSpace(query))
 	if lower != "kill" && !strings.HasPrefix(lower, "kill ") {

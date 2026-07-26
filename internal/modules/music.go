@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-// MusicSearch searches local audio files under ~/Music.
 func MusicSearch(query string) []Result {
 	if results := MusicQueueSearch(query); results != nil {
 		return results
@@ -70,7 +69,7 @@ func MusicSearch(query string) []Result {
 			Desc:  shortenPath(filepath.Dir(p)),
 			Icon:  "audio-x-generic",
 			Action: func() {
-				exec.Command("xdg-open", p).Start()
+				Open(p)
 			},
 		})
 		results = append(results, Result{
@@ -88,8 +87,7 @@ func MusicSearch(query string) []Result {
 }
 
 func MusicQueueSearch(query string) []Result {
-	q := strings.ToLower(strings.TrimSpace(query))
-	if q != "mq" && q != "music queue" && q != "queue music" {
+	if !MatchesAny(query, "mq", "music queue", "queue music") {
 		return nil
 	}
 	queue := MusicQueue()
@@ -140,7 +138,7 @@ func MusicQueueSearch(query string) []Result {
 			Desc:  shortenPath(filepath.Dir(p)),
 			Icon:  "audio-x-generic",
 			Action: func() {
-				exec.Command("xdg-open", p).Start()
+				Open(p)
 			},
 		})
 	}
@@ -351,11 +349,11 @@ func playMusicQueue() {
 		return
 	}
 	if _, err := exec.LookPath("mpv"); err == nil {
-		exec.Command("mpv", queue...).Start()
+		Start("mpv", queue...)
 		return
 	}
 	for _, path := range queue {
-		exec.Command("xdg-open", path).Start()
+		Open(path)
 	}
 }
 
@@ -368,5 +366,5 @@ func playMusicQueueWith(player string) {
 		SetStatus(false, player+" not installed")
 		return
 	}
-	exec.Command(player, queue...).Start()
+	Start(player, queue...)
 }

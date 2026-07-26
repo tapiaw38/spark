@@ -19,7 +19,6 @@ type systemCommand struct {
 	action   func()
 }
 
-// SystemSearch finds matching system commands.
 func SystemSearch(query string) []Result {
 	if len(query) < 2 {
 		return nil
@@ -59,10 +58,10 @@ func SystemSearch(query string) []Result {
 func systemCommands() []systemCommand {
 	return []systemCommand{
 		{[]string{"lock", "screensaver", "screen saver"}, "Lock Screen", "Lock session", "system-lock-screen", false, hasLocker, lockerReason(), lockScreen},
-		{[]string{"sleep", "suspend"}, "Sleep", "Suspend system", "system-suspend", true, hasSystemctl, systemctlReason(), func() { exec.Command("systemctl", "suspend").Start() }},
-		{[]string{"hibernate"}, "Hibernate", "Hibernate system", "system-suspend-hibernate", true, hasSystemctl, systemctlReason(), func() { exec.Command("systemctl", "hibernate").Start() }},
-		{[]string{"restart", "reboot"}, "Restart", "Restart system", "system-reboot", true, hasSystemctl, systemctlReason(), func() { exec.Command("systemctl", "reboot").Start() }},
-		{[]string{"shutdown", "poweroff", "power off"}, "Shutdown", "Power off system", "system-shutdown", true, hasSystemctl, systemctlReason(), func() { exec.Command("systemctl", "poweroff").Start() }},
+		{[]string{"sleep", "suspend"}, "Sleep", "Suspend system", "system-suspend", true, hasSystemctl, systemctlReason(), func() { Start("systemctl", "suspend") }},
+		{[]string{"hibernate"}, "Hibernate", "Hibernate system", "system-suspend-hibernate", true, hasSystemctl, systemctlReason(), func() { Start("systemctl", "hibernate") }},
+		{[]string{"restart", "reboot"}, "Restart", "Restart system", "system-reboot", true, hasSystemctl, systemctlReason(), func() { Start("systemctl", "reboot") }},
+		{[]string{"shutdown", "poweroff", "power off"}, "Shutdown", "Power off system", "system-shutdown", true, hasSystemctl, systemctlReason(), func() { Start("systemctl", "poweroff") }},
 		{[]string{"logout", "log out", "exit session"}, "Logout", "Terminate current user session", "system-log-out", true, hasLoginctl, loginctlReason(), logout},
 		{[]string{"trash", "empty trash", "clear trash"}, "Empty Trash", "Delete files from user trash", "user-trash", true, hasTrashBackend, "Install gio or kioclient6; session " + sessionSummary(), emptyTrash},
 	}
@@ -117,7 +116,7 @@ func lockScreen() {
 		{"loginctl", "lock-session"},
 	} {
 		if _, err := exec.LookPath(cmd[0]); err == nil {
-			exec.Command(cmd[0], cmd[1:]...).Start()
+			Start(cmd[0], cmd[1:]...)
 			return
 		}
 	}
@@ -125,10 +124,10 @@ func lockScreen() {
 
 func logout() {
 	if u, err := user.Current(); err == nil && u.Username != "" {
-		exec.Command("loginctl", "terminate-user", u.Username).Start()
+		Start("loginctl", "terminate-user", u.Username)
 		return
 	}
-	exec.Command("loginctl", "terminate-session", os.Getenv("XDG_SESSION_ID")).Start()
+	Start("loginctl", "terminate-session", os.Getenv("XDG_SESSION_ID"))
 }
 
 func emptyTrash() {

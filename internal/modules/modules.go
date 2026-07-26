@@ -1,6 +1,5 @@
 package modules
 
-// Result represents a search result from any module
 type Result struct {
 	Type            string // "app", "calc", "web", "system", "file", "shell", "spotify"
 	Title           string

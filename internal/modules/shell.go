@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-// ShellSearch handles "> command" prefix for running shell commands
 func ShellSearch(query string) []Result {
 	if !strings.HasPrefix(query, ">") {
 		return nil
@@ -22,7 +21,6 @@ func ShellSearch(query string) []Result {
 		Desc:  "Execute in terminal",
 		Icon:  "utilities-terminal",
 		Action: func() {
-			// ponytail: ghostty from user's config, fallback to common terminals
 			terminals := []string{"ghostty", "alacritty", "kitty", "foot", "gnome-terminal"}
 			for _, term := range terminals {
 				if _, err := exec.LookPath(term); err == nil {

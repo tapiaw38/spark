@@ -8,7 +8,6 @@ import (
 
 var unitRe = regexp.MustCompile(`^([0-9]+(?:\.[0-9]+)?)\s*([a-z°]+)\s+(?:to|in)\s+([a-z°]+)$`)
 
-// factors maps a unit to (base-unit, multiplier-to-base) within a category.
 var unitFactors = map[string]struct {
 	base   string
 	factor float64
@@ -19,7 +18,6 @@ var unitFactors = map[string]struct {
 	"b": {"b", 1}, "kb": {"b", 1024}, "mb": {"b", 1048576}, "gb": {"b", 1073741824}, "tb": {"b", 1099511627776},
 }
 
-// UnitSearch converts "100 km to mi", "50f to c", "5 gb to mb".
 func UnitSearch(query string) []Result {
 	m := unitRe.FindStringSubmatch(strings.ToLower(strings.TrimSpace(query)))
 	if m == nil {

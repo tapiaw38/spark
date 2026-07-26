@@ -10,7 +10,6 @@ import (
 	"time"
 )
 
-// SpotifyInfo contains current playback info
 type SpotifyInfo struct {
 	Title   string
 	Artist  string
@@ -35,7 +34,6 @@ const (
 	PlayerYouTube PlayerKind = "youtube"
 )
 
-// GetSpotifyInfo returns current playback information
 func GetSpotifyInfo() *SpotifyInfo {
 	return GetPlayerInfo(PlayerSpotify)
 }
@@ -89,7 +87,6 @@ func GetPlayerInfo(kind PlayerKind) *SpotifyInfo {
 		}
 	}
 
-	// Cache album art locally
 	if info.ArtURL != "" {
 		info.ArtPath = cacheAlbumArt(info.ArtURL)
 	}
@@ -319,8 +316,7 @@ func YouTubePlayerControls(query string) []Result {
 }
 
 func YouTubePlayerStatus(query string) []Result {
-	q := strings.ToLower(strings.TrimSpace(query))
-	if q != "yp status" && q != "youtube player status" {
+	if !MatchesAny(query, "yp status", "youtube player status") {
 		return nil
 	}
 	metas := playerMetas()
@@ -393,27 +389,22 @@ func oldSpotifyPlayer() string {
 	return ""
 }
 
-// cacheAlbumArt downloads and caches album art, returns local path
 func cacheAlbumArt(url string) string {
 	cacheDir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "art")
 	os.MkdirAll(cacheDir, 0755)
 
-	// Use URL hash as filename
 	hash := simpleHash(url)
 	cachePath := filepath.Join(cacheDir, hash+".jpg")
 
-	// Check if already cached
 	if _, err := os.Stat(cachePath); err == nil {
 		return cachePath
 	}
 
-	// Handle file:// URLs
 	if strings.HasPrefix(url, "file://") {
 		localPath := strings.TrimPrefix(url, "file://")
 		return localPath
 	}
 
-	// Download from http/https
 	if strings.HasPrefix(url, "http") {
 		resp, err := http.Get(url)
 		if err != nil {
@@ -439,7 +430,6 @@ func simpleHash(s string) string {
 	for i := 0; i < len(s); i++ {
 		h = h*31 + uint32(s[i])
 	}
-	// Convert to hex string
 	const hex = "0123456789abcdef"
 	result := make([]byte, 8)
 	for i := 7; i >= 0; i-- {
@@ -449,12 +439,10 @@ func simpleHash(s string) string {
 	return string(result)
 }
 
-// SpotifyControls returns control actions
 func SpotifyControls() []Result {
 	return PlayerControls(PlayerSpotify)
 }
 
-// IsSpotifyQuery returns true if query triggers spotify mode
 func IsSpotifyQuery(query string) bool {
 	q := strings.ToLower(strings.TrimSpace(query))
 	return q == "sp" || q == "spotify" || strings.HasPrefix(q, "sp ")
@@ -465,11 +453,9 @@ func IsYouTubePlayerQuery(query string) bool {
 	return q == "yp" || q == "youtube player" || strings.HasPrefix(q, "yp ") || strings.HasPrefix(q, "youtube player ")
 }
 
-// SpotifySearch returns music control results (legacy, for non-spotify-mode)
 func SpotifySearch(query string) []Result {
 	q := strings.ToLower(strings.TrimSpace(query))
 
-	// Only trigger on specific control keywords outside spotify mode
 	if q == "play" || q == "pause" || q == "next" || q == "prev" {
 		player := spotifyPlayer()
 		run := func(args ...string) func() {

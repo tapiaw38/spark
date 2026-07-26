@@ -9,10 +9,6 @@ import (
 	"strings"
 )
 
-// ClipboardSearch searches clipboard history
-// ponytail: relies on cliphist (common Wayland clipboard manager)
-// Install: yay -S cliphist
-// Setup: wl-paste --watch cliphist store (in autostart)
 func ClipboardSearch(query string) []Result {
 	lowerQuery := strings.ToLower(query)
 	directPaste := strings.HasPrefix(lowerQuery, "paste")
@@ -20,7 +16,6 @@ func ClipboardSearch(query string) []Result {
 		return nil
 	}
 
-	// Get search term after prefix
 	searchTerm := ""
 	if strings.HasPrefix(lowerQuery, "clipboard ") {
 		searchTerm = query[len("clipboard "):]
@@ -32,7 +27,6 @@ func ClipboardSearch(query string) []Result {
 		searchTerm = query[len("paste "):]
 	}
 
-	// Check if cliphist is available
 	if _, err := exec.LookPath("cliphist"); err != nil {
 		return []Result{{
 			Type:   "clipboard",
@@ -43,7 +37,6 @@ func ClipboardSearch(query string) []Result {
 		}}
 	}
 
-	// Get clipboard history
 	cmd := exec.Command("cliphist", "list")
 	output, err := cmd.Output()
 	if err != nil {
@@ -58,7 +51,6 @@ func ClipboardSearch(query string) []Result {
 			continue
 		}
 
-		// cliphist format: "id\tpreview"
 		parts := strings.SplitN(line, "\t", 2)
 		if len(parts) < 2 {
 			continue
@@ -67,12 +59,10 @@ func ClipboardSearch(query string) []Result {
 		id := parts[0]
 		preview := parts[1]
 
-		// Filter by search term
 		if searchTerm != "" && !strings.Contains(strings.ToLower(preview), strings.ToLower(searchTerm)) {
 			continue
 		}
 
-		// Truncate preview
 		if len(preview) > 50 {
 			preview = preview[:50] + "..."
 		}
@@ -88,7 +78,6 @@ func ClipboardSearch(query string) []Result {
 			PreviewImage: previewImage,
 			Data:         clipID,
 			Action: func() {
-				// Decode and copy to clipboard
 				decode := exec.Command("cliphist", "decode")
 				decode.Stdin = strings.NewReader(clipID)
 				decoded, _ := decode.Output()
@@ -245,10 +234,10 @@ func clipboardDisplay(preview string, directPaste bool) (string, string) {
 
 func pasteClipboard() {
 	if _, err := exec.LookPath("wtype"); err == nil {
-		exec.Command("wtype", "-M", "ctrl", "v", "-m", "ctrl").Start()
+		Start("wtype", "-M", "ctrl", "v", "-m", "ctrl")
 		return
 	}
 	if _, err := exec.LookPath("ydotool"); err == nil {
-		exec.Command("ydotool", "key", "29:1", "47:1", "47:0", "29:0").Start()
+		Start("ydotool", "key", "29:1", "47:1", "47:0", "29:0")
 	}
 }
