@@ -1,6 +1,6 @@
 # Spark
 
-Alfred-like app launcher for Linux (Wayland/MangoWM).
+App launcher for Linux (Wayland/MangoWM).
 
 ## Stack
 
@@ -27,17 +27,34 @@ go build -buildvcs=false -o spark ./cmd/spark/
 ./spark --setup  # Updates ~/.config/mango/bind.conf with hotkey from config
 ```
 
+## Architecture
+
+Spark uses a lightweight hexagonal style:
+
+- `internal/modules` owns search logic and returns declarative `Result` values.
+- `Result.ActionSpec` describes what should happen when the user presses Enter.
+- `cmd/spark/action_executor.go` is the UI adapter that executes actions against the desktop/session.
+- `internal/platform/commands` is the only package that wraps `os/exec`.
+
+Modules should prefer `ActionSpec` helpers such as `OpenAction`, `CopyAction`, `TerminalAction`, `EmailAction`, `FileAction`, `MusicAction`, `SyncAction`, and `SystemAction` instead of running shell commands directly.
+
 ## Project Structure
 
 ```bash
 spark/
-├── cmd/spark/main.go       # Entry point, GTK window, UI logic
+├── cmd/spark/
+│   ├── main.go             # Entry point and command dispatch
+│   ├── launcher.go         # GTK launcher window
+│   ├── action_executor.go  # Executes modules.ActionSpec values
+│   └── window_*.go         # Focused GTK windows/dialogs
 ├── internal/
 │   ├── apps/apps.go        # .desktop file parsing, app search
 │   ├── config/config.go    # YAML config, CSS generation, hotkey setup
 │   ├── history/history.go  # App launch frequency tracking
+│   ├── platform/
+│   │   └── commands/       # Wrapper around os/exec
 │   └── modules/
-│       ├── modules.go      # Result struct definition
+│       ├── modules.go      # Result, ActionSpec, registries
 │       ├── calc.go         # Calculator (2+2)
 │       ├── web.go          # Web shortcuts (g, yt, gh, etc.)
 │       ├── system.go       # System commands (lock, shutdown, etc.)
@@ -152,31 +169,52 @@ web_shortcuts:
 
 1. Create `internal/modules/newmodule.go`
 2. Implement `func NewModuleSearch(query string) []Result`
-3. Add call in `cmd/spark/main.go` in `updateResults()`
+3. Return `Result` values with `ActionSpec` for Enter behavior
+4. Register the module in `internal/modules/registry.go`
 
 ### Result struct (modules/modules.go)
 
 ```go
 type Result struct {
-    Type         string   // Module identifier
-    Title        string   // Main text
-    Desc         string   // Secondary text
-    Icon         string   // Icon name or path
-    Preview      string   // Preview pane text
-    PreviewImage string   // Preview pane image path
-    Action       func()   // Execute on Enter
+    Type            ResultType // Module/result identifier
+    Title           string     // Main text
+    Desc            string     // Secondary text
+    Icon            string     // Icon name or path
+    IconText        string     // Text fallback for icon display
+    Preview         string     // Preview pane text
+    PreviewImage    string     // Preview pane image path
+    PreviewImageURL string     // Remote image to cache for preview
+    Data            string     // Module-specific data
+    KeepOpen        bool       // Keep launcher open after action
+    Confirm         bool       // Ask before executing action
+    NavigateQuery   string     // Replace query instead of executing
+    ActionSpec      ActionSpec // Declarative action executed by cmd/spark
+    Action          func()     // Legacy escape hatch; avoid for new modules
 }
+```
+
+Common action helpers:
+
+```go
+OpenAction(pathOrURL)
+CopyAction(text)
+TerminalAction(command)
+EmailAction(to, subject, body, attachments...)
+FileAction(op, args...)
+MusicAction(op, args...)
+SyncAction(op, args...)
+SystemAction(op)
 ```
 
 ### Spotify view
 
-Special UI in `cmd/spark/main.go`:
+Special UI in `cmd/spark/player.go`:
 
 - `createSpotifyView()` - Build layout
 - `showSpotifyView()` / `hideSpotifyView()` - Toggle
 - `refreshSpotifyInfo()` - Update track info
 
-Uses `playerctl` for MPRIS control.
+Uses `playerctl` for MPRIS metadata and `ActionSpec` for controls.
 
 ## Dependencies
 

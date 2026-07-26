@@ -1,11 +1,12 @@
 package main
 
 import (
-	cmdrunner "github.com/tapiaw38/spark/internal/platform/commands"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
+
+	cmdrunner "github.com/tapiaw38/spark/internal/platform/commands"
 
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v3"

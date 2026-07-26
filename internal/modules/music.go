@@ -2,11 +2,12 @@ package modules
 
 import (
 	"encoding/json"
-	"github.com/tapiaw38/spark/internal/platform/commands"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/tapiaw38/spark/internal/platform/commands"
 
 	"github.com/tapiaw38/spark/internal/config"
 )

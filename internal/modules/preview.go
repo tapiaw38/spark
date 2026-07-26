@@ -2,11 +2,12 @@ package modules
 
 import (
 	"archive/zip"
-	"github.com/tapiaw38/spark/internal/platform/commands"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/tapiaw38/spark/internal/platform/commands"
 
 	"github.com/tapiaw38/spark/internal/config"
 )

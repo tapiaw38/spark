@@ -1,10 +1,11 @@
 package modules
 
 import (
-	"github.com/tapiaw38/spark/internal/platform/commands"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/tapiaw38/spark/internal/platform/commands"
 )
 
 func KillSearch(query string) []Result {

@@ -2,12 +2,13 @@ package modules
 
 import (
 	"context"
-	"github.com/tapiaw38/spark/internal/platform/commands"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/tapiaw38/spark/internal/platform/commands"
 )
 
 var (

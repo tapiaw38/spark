@@ -1,10 +1,11 @@
 package modules
 
 import (
-	"github.com/tapiaw38/spark/internal/platform/commands"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/tapiaw38/spark/internal/platform/commands"
 
 	"github.com/tapiaw38/spark/internal/config"
 )

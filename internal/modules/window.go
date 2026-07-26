@@ -2,9 +2,10 @@ package modules
 
 import (
 	"fmt"
-	"github.com/tapiaw38/spark/internal/platform/commands"
 	"strconv"
 	"strings"
+
+	"github.com/tapiaw38/spark/internal/platform/commands"
 )
 
 func WindowSearch(query string) []Result {

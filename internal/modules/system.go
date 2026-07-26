@@ -1,9 +1,10 @@
 package modules
 
 import (
-	"github.com/tapiaw38/spark/internal/platform/commands"
 	"os"
 	"strings"
+
+	"github.com/tapiaw38/spark/internal/platform/commands"
 )
 
 type systemCommand struct {

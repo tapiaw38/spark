@@ -2,8 +2,9 @@ package modules
 
 import (
 	"context"
-	"github.com/tapiaw38/spark/internal/platform/commands"
 	"strings"
+
+	"github.com/tapiaw38/spark/internal/platform/commands"
 
 	"github.com/tapiaw38/spark/internal/config"
 )

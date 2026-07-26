@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	cmdrunner "github.com/tapiaw38/spark/internal/platform/commands"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	cmdrunner "github.com/tapiaw38/spark/internal/platform/commands"
 
 	"github.com/tapiaw38/spark/internal/apps"
 	"github.com/tapiaw38/spark/internal/config"

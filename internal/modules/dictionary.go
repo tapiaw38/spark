@@ -2,11 +2,12 @@ package modules
 
 import (
 	"encoding/json"
-	"github.com/tapiaw38/spark/internal/platform/commands"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/tapiaw38/spark/internal/platform/commands"
 )
 
 var (
