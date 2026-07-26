@@ -47,16 +47,17 @@ var (
 )
 
 var (
-	spotifyView     *gtk.Box
-	spotifyArtBig   *gtk.Image
-	spotifyArtSmall *gtk.Image
-	spotifyTitle    *gtk.Label
-	spotifyArtist   *gtk.Label
-	spotifyAlbum    *gtk.Label
-	spotifyStatus   *gtk.Label
-	spotifyList     *gtk.ListBox
-	inSpotifyMode   bool
-	playerMode      modules.PlayerKind
+	spotifyView       *gtk.Box
+	spotifyArtBig     *gtk.Image
+	spotifyArtSmall   *gtk.Image
+	spotifyTitle      *gtk.Label
+	spotifyArtist     *gtk.Label
+	spotifyAlbum      *gtk.Label
+	spotifyStatus     *gtk.Label
+	spotifyList       *gtk.ListBox
+	inSpotifyMode     bool
+	playerMode        modules.PlayerKind
+	playerInfoVersion uint64
 )
 
 var (

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"sync/atomic"
+	"time"
+
 	"github.com/diamondburned/gotk4/pkg/gdkpixbuf/v2"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v3"
@@ -68,8 +71,7 @@ func createSpotifyView() {
 		idx := row.Index()
 		ctrls := modules.PlayerControls(playerMode)
 		if idx >= 0 && idx < len(ctrls) {
-			ctrls[idx].Action()
-			glib.TimeoutAdd(playerRefreshDelayMs, func() bool { refreshSpotifyInfo(); return false })
+			runPlayerAction(ctrls[idx].Action)
 		}
 	})
 
@@ -105,8 +107,7 @@ func buildPlayerControls() *gtk.Box {
 		btn.SetLabel(b.label)
 		idx := b.index
 		btn.Connect("clicked", func() {
-			modules.PlayerControls(playerMode)[idx].Action()
-			glib.TimeoutAdd(playerRefreshDelayMs, func() bool { refreshSpotifyInfo(); return false })
+			runPlayerAction(modules.PlayerControls(playerMode)[idx].Action)
 		})
 		controls.PackStart(btn, false, false, 0)
 	}
@@ -145,6 +146,9 @@ func showSpotifyView() {
 }
 
 func showPlayerView(kind modules.PlayerKind) {
+	if inSpotifyMode && playerMode == kind {
+		return
+	}
 	playerMode = kind
 	inSpotifyMode = true
 	resultsScroll.Hide()
@@ -185,7 +189,20 @@ func hideSpotifyView() {
 }
 
 func refreshSpotifyInfo() {
-	info := modules.GetPlayerInfo(playerMode)
+	mode := playerMode
+	version := atomic.AddUint64(&playerInfoVersion, 1)
+	go func() {
+		info := modules.GetPlayerInfo(mode)
+		glib.IdleAdd(func() {
+			if atomic.LoadUint64(&playerInfoVersion) != version {
+				return
+			}
+			applyPlayerInfo(info)
+		})
+	}()
+}
+
+func applyPlayerInfo(info *modules.SpotifyInfo) {
 	if info == nil {
 		showPlayerDisconnected()
 		return
@@ -204,6 +221,14 @@ func refreshSpotifyInfo() {
 			spotifyArtBig.SetFromPixbuf(pb)
 		}
 	}
+}
+
+func runPlayerAction(action func()) {
+	go func() {
+		action()
+		time.Sleep(playerRefreshDelayMs * time.Millisecond)
+		glib.IdleAdd(func() { refreshSpotifyInfo() })
+	}()
 }
 
 func showPlayerDisconnected() {

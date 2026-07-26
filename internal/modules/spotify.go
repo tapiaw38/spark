@@ -34,10 +34,6 @@ const (
 	PlayerYouTube PlayerKind = "youtube"
 )
 
-func GetSpotifyInfo() *SpotifyInfo {
-	return GetPlayerInfo(PlayerSpotify)
-}
-
 func GetPlayerInfo(kind PlayerKind) *SpotifyInfo {
 	player := mediaPlayer(kind)
 	if player == "" {
@@ -92,14 +88,6 @@ func GetPlayerInfo(kind PlayerKind) *SpotifyInfo {
 	}
 
 	return info
-}
-
-func spotifyPlayer() string {
-	return mediaPlayer(PlayerSpotify)
-}
-
-func youtubePlayer() string {
-	return mediaPlayer(PlayerYouTube)
 }
 
 func mediaPlayer(kind PlayerKind) string {
@@ -248,14 +236,6 @@ func playerctlMedia(player string, args ...string) *exec.Cmd {
 	return exec.Command("playerctl", all...)
 }
 
-func playerctlSpotify(player string, args ...string) *exec.Cmd {
-	return playerctlMedia(player, args...)
-}
-
-func playerctlYouTube(player string, args ...string) *exec.Cmd {
-	return playerctlMedia(player, args...)
-}
-
 func playerAction(kind PlayerKind, args ...string) func() {
 	return func() {
 		player := mediaPlayer(kind)
@@ -372,23 +352,6 @@ func YouTubePlayerStatus(query string) []Result {
 	return results
 }
 
-func oldSpotifyPlayer() string {
-	out, err := exec.Command("playerctl", "-l").Output()
-	if err != nil {
-		return ""
-	}
-	for _, line := range strings.Split(string(out), "\n") {
-		player := strings.TrimSpace(line)
-		if player == "" {
-			continue
-		}
-		if strings.Contains(strings.ToLower(player), "spotify") {
-			return player
-		}
-	}
-	return ""
-}
-
 func cacheAlbumArt(url string) string {
 	cacheDir := filepath.Join(os.Getenv("HOME"), ".cache", "spark", "art")
 	os.MkdirAll(cacheDir, 0755)
@@ -439,10 +402,6 @@ func simpleHash(s string) string {
 	return string(result)
 }
 
-func SpotifyControls() []Result {
-	return PlayerControls(PlayerSpotify)
-}
-
 func IsSpotifyQuery(query string) bool {
 	q := strings.ToLower(strings.TrimSpace(query))
 	return q == "sp" || q == "spotify" || strings.HasPrefix(q, "sp ")
@@ -453,32 +412,26 @@ func IsYouTubePlayerQuery(query string) bool {
 	return q == "yp" || q == "youtube player" || strings.HasPrefix(q, "yp ") || strings.HasPrefix(q, "youtube player ")
 }
 
+var bareMediaCommands = map[string]struct {
+	title string
+	icon  string
+	arg   string
+}{
+	"play":  {"Play/Pause", "media-playback-start", "play-pause"},
+	"pause": {"Play/Pause", "media-playback-start", "play-pause"},
+	"next":  {"Next Track", "media-skip-forward", "next"},
+	"prev":  {"Previous Track", "media-skip-backward", "previous"},
+}
+
 func SpotifySearch(query string) []Result {
-	q := strings.ToLower(strings.TrimSpace(query))
-
-	if q == "play" || q == "pause" || q == "next" || q == "prev" {
-		player := spotifyPlayer()
-		run := func(args ...string) func() {
-			return func() {
-				if player == "" {
-					SetStatus(false, "Spotify player not detected")
-					return
-				}
-				playerctlSpotify(player, args...).Run()
-			}
-		}
-		switch q {
-		case "play", "pause":
-			return []Result{{Type: "spotify", Title: "Play/Pause", Icon: "media-playback-start",
-				Action: run("play-pause")}}
-		case "next":
-			return []Result{{Type: "spotify", Title: "Next Track", Icon: "media-skip-forward",
-				Action: run("next")}}
-		case "prev":
-			return []Result{{Type: "spotify", Title: "Previous Track", Icon: "media-skip-backward",
-				Action: run("previous")}}
-		}
+	cmd, ok := bareMediaCommands[normalizeQuery(query)]
+	if !ok {
+		return nil
 	}
-
-	return nil
+	return []Result{{
+		Type:   "spotify",
+		Title:  cmd.title,
+		Icon:   cmd.icon,
+		Action: playerAction(PlayerSpotify, cmd.arg),
+	}}
 }
