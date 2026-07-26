@@ -2,7 +2,7 @@ package modules
 
 import (
 	"context"
-	"os/exec"
+	"github.com/tapiaw38/spark/internal/platform/commands"
 	"strings"
 
 	"github.com/tapiaw38/spark/internal/config"
@@ -22,11 +22,10 @@ func SpellSearch(query string) []Result {
 	}
 
 	return []Result{{
-		Type:   TypeSpell,
-		Title:  "Spell: " + word,
-		Desc:   "Install aspell or hunspell for spelling suggestions",
-		Icon:   "accessories-dictionary",
-		Action: func() {},
+		Type:  TypeSpell,
+		Title: "Spell: " + word,
+		Desc:  "Install aspell or hunspell for spelling suggestions",
+		Icon:  "accessories-dictionary",
 	}}
 }
 
@@ -47,10 +46,10 @@ func spellTerm(query string) (string, string, bool) {
 }
 
 func runSpellChecker(word, lang string) *Result {
-	if _, err := exec.LookPath("aspell"); err == nil {
+	if _, err := commands.LookPath("aspell"); err == nil {
 		return parseSpellOutput(word, "aspell", lang)
 	}
-	if _, err := exec.LookPath("hunspell"); err == nil {
+	if _, err := commands.LookPath("hunspell"); err == nil {
 		return parseSpellOutput(word, "hunspell", lang)
 	}
 	return nil
@@ -68,7 +67,7 @@ func parseSpellOutput(word, cmdName, lang string) *Result {
 			args = append([]string{"-d", lang}, args...)
 		}
 	}
-	cmd := exec.CommandContext(ctx, cmdName, args...)
+	cmd := commands.CommandContext(ctx, cmdName, args...)
 	cmd.Stdin = strings.NewReader(word + "\n")
 	out, err := cmd.Output()
 	if err != nil {
@@ -82,11 +81,11 @@ func parseSpellOutput(word, cmdName, lang string) *Result {
 		}
 		if line == "*" {
 			return &Result{
-				Type:   TypeSpell,
-				Title:  word + " is spelled correctly",
-				Desc:   "Copy word",
-				Icon:   "accessories-dictionary",
-				Action: func() { Run("wl-copy", word) },
+				Type:       TypeSpell,
+				Title:      word + " is spelled correctly",
+				Desc:       "Copy word",
+				Icon:       "accessories-dictionary",
+				ActionSpec: CopyAction(word),
 			}
 		}
 		if strings.HasPrefix(line, "&") || strings.HasPrefix(line, "#") {
@@ -99,11 +98,11 @@ func parseSpellOutput(word, cmdName, lang string) *Result {
 			}
 			desc := strings.Join(suggestions, ", ")
 			return &Result{
-				Type:   TypeSpell,
-				Title:  title,
-				Desc:   desc,
-				Icon:   "accessories-dictionary",
-				Action: func() { Run("wl-copy", copyText) },
+				Type:       TypeSpell,
+				Title:      title,
+				Desc:       desc,
+				Icon:       "accessories-dictionary",
+				ActionSpec: CopyAction(copyText),
 			}
 		}
 	}

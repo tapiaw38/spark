@@ -1,8 +1,8 @@
 package modules
 
 import (
+	"github.com/tapiaw38/spark/internal/platform/commands"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 )
@@ -17,11 +17,10 @@ func KillSearch(query string) []Result {
 		proc, ok := procByPID(pid)
 		if !ok {
 			return []Result{{
-				Type:   TypeKill,
-				Title:  "Process not found: " + pid,
-				Desc:   "It may have already exited",
-				Icon:   "dialog-warning",
-				Action: func() {},
+				Type:  TypeKill,
+				Title: "Process not found: " + pid,
+				Desc:  "It may have already exited",
+				Icon:  "dialog-warning",
 			}}
 		}
 		return []Result{confirmKillResult(proc)}
@@ -49,17 +48,11 @@ type procInfo struct{ pid, name string }
 
 func confirmKillResult(p procInfo) Result {
 	return Result{
-		Type:  TypeKill,
-		Title: "Confirm Kill " + p.name + " (" + p.pid + ")",
-		Desc:  "Send SIGTERM",
-		Icon:  "dialog-warning",
-		Action: func() {
-			if err := exec.Command("kill", p.pid).Run(); err != nil {
-				SetStatus(false, "Kill failed: "+err.Error())
-			} else {
-				SetStatus(true, "Killed "+p.name+" ("+p.pid+")")
-			}
-		},
+		Type:       TypeKill,
+		Title:      "Confirm Kill " + p.name + " (" + p.pid + ")",
+		Desc:       "Send SIGTERM",
+		Icon:       "dialog-warning",
+		ActionSpec: RunAction("kill", p.pid).WithStatus("Killed " + p.name + " (" + p.pid + ")"),
 	}
 }
 
@@ -73,7 +66,7 @@ func procByPID(pid string) (procInfo, bool) {
 }
 
 func listProcs(match string) []procInfo {
-	out, err := exec.Command("ps", "-eo", "pid=,comm=").Output()
+	out, err := commands.Command("ps", "-eo", "pid=,comm=").Output()
 	if err != nil {
 		return nil
 	}

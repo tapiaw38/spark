@@ -2,8 +2,8 @@ package modules
 
 import (
 	"encoding/json"
+	"github.com/tapiaw38/spark/internal/platform/commands"
 	"net/http"
-	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -32,13 +32,11 @@ func DictionarySearch(query string) []Result {
 	if cached, ok := dictCache[word]; ok {
 		dictCacheMu.RUnlock()
 		return []Result{{
-			Type:  TypeDictionary,
-			Title: word,
-			Desc:  cached,
-			Icon:  "accessories-dictionary",
-			Action: func() {
-				Run("wl-copy", cached)
-			},
+			Type:       TypeDictionary,
+			Title:      word,
+			Desc:       cached,
+			Icon:       "accessories-dictionary",
+			ActionSpec: CopyAction(cached),
 		}}
 	}
 	dictCacheMu.RUnlock()
@@ -49,13 +47,11 @@ func DictionarySearch(query string) []Result {
 		dictCacheMu.Unlock()
 
 		return []Result{{
-			Type:  TypeDictionary,
-			Title: word,
-			Desc:  def,
-			Icon:  "accessories-dictionary",
-			Action: func() {
-				Run("wl-copy", def)
-			},
+			Type:       TypeDictionary,
+			Title:      word,
+			Desc:       def,
+			Icon:       "accessories-dictionary",
+			ActionSpec: CopyAction(def),
 		}}
 	}
 
@@ -68,20 +64,19 @@ func DictionarySearch(query string) []Result {
 	}()
 
 	return []Result{{
-		Type:   TypeDictionary,
-		Title:  word,
-		Desc:   "Looking up...",
-		Icon:   "accessories-dictionary",
-		Action: func() {},
+		Type:  TypeDictionary,
+		Title: word,
+		Desc:  "Looking up...",
+		Icon:  "accessories-dictionary",
 	}}
 }
 
 func localDict(word string) string {
-	if _, err := exec.LookPath("dict"); err != nil {
+	if _, err := commands.LookPath("dict"); err != nil {
 		return ""
 	}
 
-	cmd := exec.Command("dict", "-d", "wn", word)
+	cmd := commands.Command("dict", "-d", "wn", word)
 	done := make(chan []byte, 1)
 	go func() {
 		out, _ := cmd.Output()

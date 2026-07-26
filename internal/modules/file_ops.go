@@ -2,9 +2,9 @@ package modules
 
 import (
 	"encoding/json"
+	"github.com/tapiaw38/spark/internal/platform/commands"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -31,11 +31,10 @@ func FileOperationSearch(query string) []Result {
 	}
 	if source == "" || target == "" {
 		return []Result{{
-			Type:   TypeFileOp,
-			Title:  operationTitle(op),
-			Desc:   "Use: " + op + " source | target",
-			Icon:   operationIcon(op),
-			Action: func() {},
+			Type:  TypeFileOp,
+			Title: operationTitle(op),
+			Desc:  "Use: " + op + " source | target",
+			Icon:  operationIcon(op),
 		}}
 	}
 
@@ -48,14 +47,12 @@ func FileOperationSearch(query string) []Result {
 	dst := target
 
 	return []Result{{
-		Type:    TypeFileOp,
-		Title:   operationTitle(op),
-		Desc:    shortenPath(src) + " -> " + shortenPath(dst),
-		Icon:    operationIcon(op),
-		Confirm: true,
-		Action: func() {
-			RunFileOperation(op, src, dst)
-		},
+		Type:       TypeFileOp,
+		Title:      operationTitle(op),
+		Desc:       shortenPath(src) + " -> " + shortenPath(dst),
+		Icon:       operationIcon(op),
+		Confirm:    true,
+		ActionSpec: FileAction("op", op, src, dst),
 	}}
 }
 
@@ -66,23 +63,19 @@ func UndoSearch(query string) []Result {
 	undo := currentFileUndo()
 	if undo == nil {
 		return []Result{{
-			Type:   TypeUndo,
-			Title:  "Nothing to Undo",
-			Desc:   "File operations set undo state",
-			Icon:   "edit-undo",
-			Action: func() {},
+			Type:  TypeUndo,
+			Title: "Nothing to Undo",
+			Desc:  "File operations set undo state",
+			Icon:  "edit-undo",
 		}}
 	}
 	return []Result{{
-		Type:    TypeUndo,
-		Title:   "Undo: " + undo.Title,
-		Desc:    "Confirm undo",
-		Icon:    "edit-undo",
-		Confirm: true,
-		Action: func() {
-			runUndo(undo)
-			clearUndo()
-		},
+		Type:       TypeUndo,
+		Title:      "Undo: " + undo.Title,
+		Desc:       "Confirm undo",
+		Icon:       "edit-undo",
+		Confirm:    true,
+		ActionSpec: StateAction("file-undo"),
 	}}
 }
 
@@ -170,14 +163,20 @@ func runUndo(undo *fileUndo) {
 			SetStatus(true, "Undo: "+undo.Title)
 		}
 	case "gio-trash-restore":
-		if _, err := exec.LookPath("gio"); err == nil {
-			if err := exec.Command("gio", "trash", "--restore").Run(); err != nil {
+		if _, err := commands.LookPath("gio"); err == nil {
+			if err := commands.Command("gio", "trash", "--restore").Run(); err != nil {
 				SetStatus(false, "Undo trash failed: "+err.Error())
 			} else {
 				SetStatus(true, "Undo: "+undo.Title)
 			}
 		}
 	}
+}
+
+func RunLastFileUndo() {
+	undo := currentFileUndo()
+	runUndo(undo)
+	clearUndo()
 }
 
 func parseFileOperation(query string) (string, string, string, bool) {

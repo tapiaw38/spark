@@ -70,12 +70,12 @@ func DevToolsSearch(query string) []Result {
 
 func devResult(label, value string) []Result {
 	return []Result{{
-		Type:    TypeDevtool,
-		Title:   value,
-		Desc:    label + " — copy to clipboard",
-		Icon:    "applications-utilities",
-		Preview: value,
-		Action:  func() { copyToClipboard(value) },
+		Type:       TypeDevtool,
+		Title:      value,
+		Desc:       label + " — copy to clipboard",
+		Icon:       "applications-utilities",
+		Preview:    value,
+		ActionSpec: CopyAction(value),
 	}}
 }
 

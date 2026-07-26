@@ -30,25 +30,21 @@ func RecentSearch(query string) []Result {
 	paths := recentFiles(filter, appFilter)
 	if len(paths) == 0 {
 		return []Result{{
-			Type:   TypeRecent,
-			Title:  "No Recent Documents",
-			Desc:   "~/.local/share/recently-used.xbel",
-			Icon:   "document-open-recent",
-			Action: func() {},
+			Type:  TypeRecent,
+			Title: "No Recent Documents",
+			Desc:  "~/.local/share/recently-used.xbel",
+			Icon:  "document-open-recent",
 		}}
 	}
 
 	results := make([]Result, 0, len(paths))
 	for _, path := range paths {
-		p := path
 		results = append(results, Result{
-			Type:  TypeFile,
-			Title: filepath.Base(p),
-			Desc:  shortenPath(filepath.Dir(p)),
-			Icon:  getFileIcon(p),
-			Action: func() {
-				Open(p)
-			},
+			Type:       TypeFile,
+			Title:      filepath.Base(path),
+			Desc:       shortenPath(filepath.Dir(path)),
+			Icon:       getFileIcon(path),
+			ActionSpec: OpenAction(path),
 		})
 	}
 	return results

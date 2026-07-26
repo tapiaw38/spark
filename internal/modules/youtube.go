@@ -5,11 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/tapiaw38/spark/internal/platform/commands"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -51,14 +51,14 @@ func YouTubeSearch(query string) []Result {
 		return []Result{youtubeFallback("YouTube", "Type: yt search terms", "https://www.youtube.com")}
 	}
 
-	if _, err := exec.LookPath("yt-dlp"); err != nil {
+	if _, err := commands.LookPath("yt-dlp"); err != nil {
 		return []Result{youtubeFallback("YouTube: "+searchQuery, "Install yt-dlp for video previews", youtubeSearchURL(searchQuery))}
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), YouTubeSearchTimeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "yt-dlp", "--ignore-config", "--no-warnings", "--dump-json", "--flat-playlist", fmt.Sprintf("ytsearch%d:%s", maxYouTubeResults, searchQuery))
+	cmd := commands.CommandContext(ctx, "yt-dlp", "--ignore-config", "--no-warnings", "--dump-json", "--flat-playlist", fmt.Sprintf("ytsearch%d:%s", maxYouTubeResults, searchQuery))
 	out, err := cmd.Output()
 	if err != nil || len(out) == 0 {
 		return []Result{youtubeFallback("YouTube: "+searchQuery, "Open search in browser", youtubeSearchURL(searchQuery))}
@@ -95,9 +95,7 @@ func YouTubeSearch(query string) []Result {
 			Icon:            "youtube",
 			Preview:         videoURL,
 			PreviewImageURL: youtubeThumbnailURL(v),
-			Action: func() {
-				Open(videoURL)
-			},
+			ActionSpec:      OpenAction(videoURL),
 		})
 	}
 
@@ -198,13 +196,11 @@ func CacheYouTubeThumbnail(thumbnailURL string) string {
 
 func youtubeFallback(title, desc, link string) Result {
 	return Result{
-		Type:  TypeWeb,
-		Title: title,
-		Desc:  desc,
-		Icon:  "youtube",
-		Action: func() {
-			Open(link)
-		},
+		Type:       TypeWeb,
+		Title:      title,
+		Desc:       desc,
+		Icon:       "youtube",
+		ActionSpec: OpenAction(link),
 	}
 }
 

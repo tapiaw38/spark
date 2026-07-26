@@ -33,11 +33,11 @@ func UnitSearch(query string) []Result {
 	}
 	str := formatNumber(res)
 	return []Result{{
-		Type:   TypeCalc,
-		Title:  str + " " + m[3],
-		Desc:   "Copy to clipboard",
-		Icon:   "accessories-calculator",
-		Action: func() { copyToClipboard(str) },
+		Type:       TypeCalc,
+		Title:      str + " " + m[3],
+		Desc:       "Copy to clipboard",
+		Icon:       "accessories-calculator",
+		ActionSpec: CopyAction(str),
 	}}
 }
 

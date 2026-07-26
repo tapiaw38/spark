@@ -3,9 +3,9 @@ package modules
 import (
 	"encoding/json"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/tapiaw38/spark/internal/config"
 )
@@ -66,18 +66,11 @@ func SnippetSearch(query string) []Result {
 			preview = strings.ReplaceAll(preview, "\n", " ")
 
 			results = append(results, Result{
-				Type:  TypeSnippet,
-				Title: snippet.Name + " (" + snippet.Keyword + ")",
-				Desc:  preview,
-				Icon:  "edit-paste",
-				Action: func() {
-					content := expandSnippet(snippet.Content)
-					cmd := exec.Command("wl-copy", content)
-					cmd.Run()
-					if _, err := exec.LookPath("wtype"); err == nil {
-						Run("wtype", "-M", "ctrl", "v", "-m", "ctrl")
-					}
-				},
+				Type:       TypeSnippet,
+				Title:      snippet.Name + " (" + snippet.Keyword + ")",
+				Desc:       preview,
+				Icon:       "edit-paste",
+				ActionSpec: PasteAction(expandSnippet(snippet.Content)),
 			})
 		}
 
@@ -96,11 +89,9 @@ func expandSnippet(content string) string {
 }
 
 func currentDate() string {
-	out, _ := exec.Command("date", "+%Y-%m-%d").Output()
-	return strings.TrimSpace(string(out))
+	return time.Now().Format("2006-01-02")
 }
 
 func currentTime() string {
-	out, _ := exec.Command("date", "+%H:%M").Output()
-	return strings.TrimSpace(string(out))
+	return time.Now().Format("15:04")
 }

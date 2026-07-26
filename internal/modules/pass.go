@@ -1,9 +1,9 @@
 package modules
 
 import (
+	"github.com/tapiaw38/spark/internal/platform/commands"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -15,7 +15,7 @@ func PassSearch(query string) []Result {
 	if lower != "pass" && !strings.HasPrefix(lower, "pass ") {
 		return nil
 	}
-	if _, err := exec.LookPath("pass"); err != nil {
+	if _, err := commands.LookPath("pass"); err != nil {
 		return nil
 	}
 	filter := strings.TrimSpace(query[len("pass"):])
@@ -25,19 +25,12 @@ func PassSearch(query string) []Result {
 		if filter != "" && !strings.Contains(strings.ToLower(entry), strings.ToLower(filter)) {
 			continue
 		}
-		entry := entry
 		out = append(out, Result{
-			Type:  TypePass,
-			Title: "Pass: " + entry,
-			Desc:  "Copy password to clipboard",
-			Icon:  "dialog-password",
-			Action: func() {
-				if err := exec.Command("pass", "-c", entry).Run(); err != nil {
-					SetStatus(false, "Pass failed: "+err.Error())
-				} else {
-					SetStatus(true, "Copied password: "+entry)
-				}
-			},
+			Type:       TypePass,
+			Title:      "Pass: " + entry,
+			Desc:       "Copy password to clipboard",
+			Icon:       "dialog-password",
+			ActionSpec: RunAction("pass", "-c", entry).WithStatus("Copied password: " + entry),
 		})
 		if len(out) >= MaxCompactResults {
 			break

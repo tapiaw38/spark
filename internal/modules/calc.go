@@ -5,7 +5,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os/exec"
 	"strconv"
 )
 
@@ -21,14 +20,11 @@ func CalcSearch(query string) []Result {
 
 	resultStr := formatNumber(result)
 	return []Result{{
-		Type:  TypeCalc,
-		Title: fmt.Sprintf("= %s", resultStr),
-		Desc:  "Copy to clipboard",
-		Icon:  "accessories-calculator",
-		Action: func() {
-			cmd := exec.Command("wl-copy", resultStr)
-			cmd.Start()
-		},
+		Type:       TypeCalc,
+		Title:      fmt.Sprintf("= %s", resultStr),
+		Desc:       "Copy to clipboard",
+		Icon:       "accessories-calculator",
+		ActionSpec: CopyAction(resultStr),
 	}}
 }
 

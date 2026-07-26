@@ -19,13 +19,10 @@ func TimerSearch(query string) []Result {
 	secs := strconv.Itoa(int(d.Seconds()))
 
 	return []Result{{
-		Type:  TypeTimer,
-		Title: "Timer: " + arg,
-		Desc:  "Notify when elapsed",
-		Icon:  "alarm-symbolic",
-		Action: func() {
-			Start("sh", "-c", "sleep "+secs+" && notify-send 'Spark Timer' '"+arg+" elapsed'")
-			SetStatus(true, "Timer set: "+arg)
-		},
+		Type:       TypeTimer,
+		Title:      "Timer: " + arg,
+		Desc:       "Notify when elapsed",
+		Icon:       "alarm-symbolic",
+		ActionSpec: StartAction("sh", "-c", "sleep "+secs+" && notify-send 'Spark Timer' '"+arg+" elapsed'").WithStatus("Timer set: " + arg),
 	}}
 }

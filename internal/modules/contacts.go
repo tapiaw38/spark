@@ -1,8 +1,8 @@
 package modules
 
 import (
+	"github.com/tapiaw38/spark/internal/platform/commands"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -36,11 +36,10 @@ func ContactsSearch(query string) []Result {
 	contacts := loadContacts(filter)
 	if len(contacts) == 0 {
 		return []Result{{
-			Type:   TypeContact,
-			Title:  "No Contacts Found",
-			Desc:   "Looks for .vcf files in local contact folders",
-			Icon:   "x-office-address-book",
-			Action: func() {},
+			Type:  TypeContact,
+			Title: "No Contacts Found",
+			Desc:  "Looks for .vcf files in local contact folders",
+			Icon:  "x-office-address-book",
 		}}
 	}
 
@@ -49,33 +48,27 @@ func ContactsSearch(query string) []Result {
 		contact := c
 		if contact.email != "" {
 			results = append(results, Result{
-				Type:  TypeContact,
-				Title: contact.name,
-				Desc:  contact.email,
-				Icon:  "internet-mail",
-				Action: func() {
-					copyText(contact.email)
-				},
+				Type:       TypeContact,
+				Title:      contact.name,
+				Desc:       contact.email,
+				Icon:       "internet-mail",
+				ActionSpec: CopyAction(contact.email),
 			})
 			results = append(results, Result{
-				Type:  TypeContact,
-				Title: "Email " + contact.name,
-				Desc:  contact.email,
-				Icon:  "internet-mail",
-				Action: func() {
-					SendEmailFull(contact.email, "", "", nil)
-				},
+				Type:       TypeContact,
+				Title:      "Email " + contact.name,
+				Desc:       contact.email,
+				Icon:       "internet-mail",
+				ActionSpec: EmailAction(contact.email, "", ""),
 			})
 		}
 		if contact.phone != "" {
 			results = append(results, Result{
-				Type:  TypeContact,
-				Title: contact.name,
-				Desc:  contact.phone,
-				Icon:  "phone",
-				Action: func() {
-					copyText(contact.phone)
-				},
+				Type:       TypeContact,
+				Title:      contact.name,
+				Desc:       contact.phone,
+				Icon:       "phone",
+				ActionSpec: CopyAction(contact.phone),
 			})
 		}
 		if len(results) >= MaxBrowsingResults {
@@ -83,13 +76,11 @@ func ContactsSearch(query string) []Result {
 		}
 		if contact.path != "" {
 			results = append(results, Result{
-				Type:  TypeContact,
-				Title: "Open Contact: " + contact.name,
-				Desc:  shortenPath(contact.path),
-				Icon:  "x-office-address-book",
-				Action: func() {
-					Open(contact.path)
-				},
+				Type:       TypeContact,
+				Title:      "Open Contact: " + contact.name,
+				Desc:       shortenPath(contact.path),
+				Icon:       "x-office-address-book",
+				ActionSpec: OpenAction(contact.path),
 			})
 		}
 	}
@@ -98,29 +89,27 @@ func ContactsSearch(query string) []Result {
 
 func contactSyncResults() []Result {
 	results := []Result{{
-		Type:   TypeContact,
-		Title:  "CardDAV via vdirsyncer",
-		Desc:   "Run vdirsyncer sync, then contact <name>",
-		Icon:   "emblem-synchronizing",
-		Action: func() { Start("vdirsyncer", "sync") },
+		Type:       TypeContact,
+		Title:      "CardDAV via vdirsyncer",
+		Desc:       "Run vdirsyncer sync, then contact <name>",
+		Icon:       "emblem-synchronizing",
+		ActionSpec: StartAction("vdirsyncer", "sync"),
 	}}
-	if _, err := exec.LookPath("khal"); err == nil {
+	if _, err := commands.LookPath("khal"); err == nil {
 		results = append(results, Result{
-			Type:   TypeContact,
-			Title:  "Open khal Contacts",
-			Desc:   "khal interactive contact backend",
-			Icon:   "x-office-address-book",
-			Action: func() { Start("foot", "khal", "interactive") },
+			Type:       TypeContact,
+			Title:      "Open khal Contacts",
+			Desc:       "khal interactive contact backend",
+			Icon:       "x-office-address-book",
+			ActionSpec: StartAction("foot", "khal", "interactive"),
 		})
 	}
 	results = append(results, Result{
-		Type:  TypeContact,
-		Title: "Open Contact Data Folder",
-		Desc:  "~/.local/share/contacts",
-		Icon:  "folder-open",
-		Action: func() {
-			Start("xdg-open", config.DataHomeFile("contacts"))
-		},
+		Type:       TypeContact,
+		Title:      "Open Contact Data Folder",
+		Desc:       "~/.local/share/contacts",
+		Icon:       "folder-open",
+		ActionSpec: OpenAction(config.DataHomeFile("contacts")),
 	})
 	return results
 }

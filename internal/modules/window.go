@@ -2,7 +2,7 @@ package modules
 
 import (
 	"fmt"
-	"os/exec"
+	"github.com/tapiaw38/spark/internal/platform/commands"
 	"strconv"
 	"strings"
 )
@@ -12,7 +12,7 @@ func WindowSearch(query string) []Result {
 	if lower != "w" && !strings.HasPrefix(lower, "w ") {
 		return nil
 	}
-	if _, err := exec.LookPath("wlrctl"); err != nil {
+	if _, err := commands.LookPath("wlrctl"); err != nil {
 		return mangoWorkspaceSearch(lower)
 	}
 	filter := lower
@@ -23,7 +23,7 @@ func WindowSearch(query string) []Result {
 		}
 	}
 
-	out, err := exec.Command("wlrctl", "toplevel", "list").Output()
+	out, err := commands.Command("wlrctl", "toplevel", "list").Output()
 	if err != nil {
 		return nil
 	}
@@ -44,11 +44,11 @@ func WindowSearch(query string) []Result {
 			matcher = "title:" + title
 		}
 		results = append(results, Result{
-			Type:   TypeWindow,
-			Title:  line,
-			Desc:   "Focus window",
-			Icon:   "preferences-system-windows",
-			Action: func() { Run("wlrctl", "toplevel", "focus", matcher) },
+			Type:       TypeWindow,
+			Title:      line,
+			Desc:       "Focus window",
+			Icon:       "preferences-system-windows",
+			ActionSpec: RunAction("wlrctl", "toplevel", "focus", matcher),
 		})
 		if len(results) >= MaxWindowResults {
 			break
@@ -66,13 +66,12 @@ type mangoTag struct {
 }
 
 func mangoWorkspaceSearch(query string) []Result {
-	if _, err := exec.LookPath("mmsg"); err != nil {
+	if _, err := commands.LookPath("mmsg"); err != nil {
 		return []Result{{
-			Type:   TypeWindow,
-			Title:  "Window switcher unavailable",
-			Desc:   "Install wlrctl or use MangoWM with mmsg",
-			Icon:   "dialog-warning",
-			Action: func() {},
+			Type:  TypeWindow,
+			Title: "Window switcher unavailable",
+			Desc:  "Install wlrctl or use MangoWM with mmsg",
+			Icon:  "dialog-warning",
 		}}
 	}
 
@@ -80,11 +79,10 @@ func mangoWorkspaceSearch(query string) []Result {
 	tags := mangoTags()
 	if len(tags) == 0 {
 		return []Result{{
-			Type:   TypeWorkspace,
-			Title:  "No MangoWM workspaces",
-			Desc:   "mmsg did not return tags",
-			Icon:   "view-grid",
-			Action: func() {},
+			Type:  TypeWorkspace,
+			Title: "No MangoWM workspaces",
+			Desc:  "mmsg did not return tags",
+			Icon:  "view-grid",
 		}}
 	}
 
@@ -104,17 +102,11 @@ func mangoWorkspaceSearch(query string) []Result {
 			desc += " | occupied"
 		}
 		results = append(results, Result{
-			Type:  TypeWorkspace,
-			Title: title,
-			Desc:  desc,
-			Icon:  "view-grid",
-			Action: func() {
-				if err := exec.Command("mmsg", "-s", "-t", strconv.Itoa(tag.id)).Run(); err != nil {
-					SetStatus(false, "Workspace switch failed: "+err.Error())
-					return
-				}
-				SetStatus(true, "Workspace: "+strconv.Itoa(tag.id))
-			},
+			Type:       TypeWorkspace,
+			Title:      title,
+			Desc:       desc,
+			Icon:       "view-grid",
+			ActionSpec: RunAction("mmsg", "-s", "-t", strconv.Itoa(tag.id)).WithStatus("Workspace: " + strconv.Itoa(tag.id)),
 		})
 	}
 	return results
@@ -130,7 +122,7 @@ func workspaceFilter(query string) string {
 }
 
 func mangoTags() []mangoTag {
-	out, err := exec.Command("mmsg", "-g", "-t").Output()
+	out, err := commands.Command("mmsg", "-g", "-t").Output()
 	if err != nil {
 		return nil
 	}

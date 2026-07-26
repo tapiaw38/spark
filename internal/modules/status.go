@@ -25,11 +25,10 @@ func StatusSearch(query string) []Result {
 	defer statusMu.Unlock()
 	if lastStatus == "" {
 		return []Result{{
-			Type:   TypeStatus,
-			Title:  "No Status Yet",
-			Desc:   "Actions report here",
-			Icon:   "dialog-information",
-			Action: func() {},
+			Type:  TypeStatus,
+			Title: "No Status Yet",
+			Desc:  "Actions report here",
+			Icon:  "dialog-information",
 		}}
 	}
 	icon := "dialog-error"
@@ -39,10 +38,9 @@ func StatusSearch(query string) []Result {
 		title = "Last Action"
 	}
 	return []Result{{
-		Type:   TypeStatus,
-		Title:  title,
-		Desc:   lastStatus,
-		Icon:   icon,
-		Action: func() {},
+		Type:  TypeStatus,
+		Title: title,
+		Desc:  lastStatus,
+		Icon:  icon,
 	}}
 }

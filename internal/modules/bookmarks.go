@@ -19,17 +19,16 @@ func BookmarksSearch(query string) []Result {
 		if filter != "" && !strings.Contains(strings.ToLower(bm.name), filter) && !strings.Contains(strings.ToLower(bm.url), filter) {
 			continue
 		}
-		bm := bm
 		title := bm.name
 		if title == "" {
 			title = bm.url
 		}
 		out = append(out, Result{
-			Type:   TypeBookmark,
-			Title:  title,
-			Desc:   bm.url,
-			Icon:   "user-bookmarks",
-			Action: func() { Open(bm.url) },
+			Type:       TypeBookmark,
+			Title:      title,
+			Desc:       bm.url,
+			Icon:       "user-bookmarks",
+			ActionSpec: OpenAction(bm.url),
 		})
 		if len(out) >= MaxCompactResults {
 			break

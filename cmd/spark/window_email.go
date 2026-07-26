@@ -55,7 +55,7 @@ func showEmailWindow(toValue, subjectValue, bodyValue string) {
 		to := toEntry.Text()
 		subject := subjectEntry.Text()
 		body := bodyEntry.Text()
-		modules.SendEmailFull(to, subject, body, splitPaths(attachmentsEntry.Text()))
+		executeActionSpec(modules.EmailAction(to, subject, body, splitPaths(attachmentsEntry.Text())...))
 		gtk.MainQuit()
 	})
 	buttons.PackStart(bufferBtn, false, false, 0)

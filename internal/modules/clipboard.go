@@ -3,8 +3,8 @@ package modules
 import (
 	"bytes"
 	"encoding/hex"
+	"github.com/tapiaw38/spark/internal/platform/commands"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -29,17 +29,16 @@ func ClipboardSearch(query string) []Result {
 		searchTerm = query[len("paste "):]
 	}
 
-	if _, err := exec.LookPath("cliphist"); err != nil {
+	if _, err := commands.LookPath("cliphist"); err != nil {
 		return []Result{{
-			Type:   TypeClipboard,
-			Title:  "Clipboard: cliphist not installed",
-			Desc:   "Install with: yay -S cliphist",
-			Icon:   "edit-paste",
-			Action: func() {},
+			Type:  TypeClipboard,
+			Title: "Clipboard: cliphist not installed",
+			Desc:  "Install with: yay -S cliphist",
+			Icon:  "edit-paste",
 		}}
 	}
 
-	cmd := exec.Command("cliphist", "list")
+	cmd := commands.Command("cliphist", "list")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil
@@ -77,18 +76,7 @@ func ClipboardSearch(query string) []Result {
 			Icon:         icon,
 			PreviewImage: previewImage,
 			Data:         clipID,
-			Action: func() {
-				decode := exec.Command("cliphist", "decode")
-				decode.Stdin = strings.NewReader(clipID)
-				decoded, _ := decode.Output()
-
-				copy := exec.Command("wl-copy")
-				copy.Stdin = bytes.NewReader(decoded)
-				copy.Run()
-				if directPaste {
-					pasteClipboard()
-				}
-			},
+			ActionSpec:   ClipboardHistoryAction(clipID, directPaste),
 		})
 
 		if len(results) >= MaxBrowsingResults {
@@ -98,11 +86,10 @@ func ClipboardSearch(query string) []Result {
 
 	if len(results) == 0 && (query == "clip" || query == "cb" || query == "clipboard") {
 		return []Result{{
-			Type:   TypeClipboard,
-			Title:  "Clipboard History",
-			Desc:   "Type 'clip <search>' to filter",
-			Icon:   "edit-paste",
-			Action: func() {},
+			Type:  TypeClipboard,
+			Title: "Clipboard History",
+			Desc:  "Type 'clip <search>' to filter",
+			Icon:  "edit-paste",
 		}}
 	}
 
@@ -159,7 +146,7 @@ func clipboardLooksImage(preview string) bool {
 }
 
 func cacheClipboardImage(id string) string {
-	decode := exec.Command("cliphist", "decode")
+	decode := commands.Command("cliphist", "decode")
 	decode.Stdin = strings.NewReader(id)
 	data, err := decode.Output()
 	if err != nil || len(data) < 12 {
@@ -229,15 +216,5 @@ func clipboardDisplay(preview string, directPaste bool) (string, string) {
 		return "applications-graphics", action + " color from clipboard history"
 	default:
 		return "edit-paste", action + " from clipboard history"
-	}
-}
-
-func pasteClipboard() {
-	if _, err := exec.LookPath("wtype"); err == nil {
-		Start("wtype", "-M", "ctrl", "v", "-m", "ctrl")
-		return
-	}
-	if _, err := exec.LookPath("ydotool"); err == nil {
-		Start("ydotool", "key", "29:1", "47:1", "47:0", "29:0")
 	}
 }

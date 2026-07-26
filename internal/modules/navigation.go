@@ -14,10 +14,9 @@ func IsNavQuery(query string) bool {
 
 func NavigationLoading(query string) []Result {
 	return []Result{{
-		Type:   TypeNavigation,
-		Title:  "Loading...",
-		Icon:   "folder",
-		Action: func() {},
+		Type:  TypeNavigation,
+		Title: "Loading...",
+		Icon:  "folder",
 	}}
 }
 
@@ -102,23 +101,20 @@ func directoryResults(prefix, path, filter, op, source string) []Result {
 	info, err := os.Stat(path)
 	if err != nil {
 		return []Result{{
-			Type:   TypeNavigation,
-			Title:  "Folder Not Found",
-			Desc:   path,
-			Icon:   "dialog-error",
-			Action: func() {},
+			Type:  TypeNavigation,
+			Title: "Folder Not Found",
+			Desc:  path,
+			Icon:  "dialog-error",
 		}}
 	}
 	if !info.IsDir() {
 		dir := filepath.Dir(path)
 		return []Result{{
-			Type:  TypeFile,
-			Title: filepath.Base(path),
-			Desc:  shortenPath(dir),
-			Icon:  getFileIcon(path),
-			Action: func() {
-				Open(path)
-			},
+			Type:       TypeFile,
+			Title:      filepath.Base(path),
+			Desc:       shortenPath(dir),
+			Icon:       getFileIcon(path),
+			ActionSpec: OpenAction(path),
 		}}
 	}
 
@@ -137,14 +133,12 @@ func directoryResults(prefix, path, filter, op, source string) []Result {
 	if op == "copy" || op == "move" {
 		dst := path
 		results = append(results, Result{
-			Type:    TypeFileOp,
-			Title:   operationTitle(op) + " Here",
-			Desc:    shortenPath(source) + " -> " + shortenPath(dst),
-			Icon:    operationIcon(op),
-			Confirm: true,
-			Action: func() {
-				RunFileOperation(op, source, dst)
-			},
+			Type:       TypeFileOp,
+			Title:      operationTitle(op) + " Here",
+			Desc:       shortenPath(source) + " -> " + shortenPath(dst),
+			Icon:       operationIcon(op),
+			Confirm:    true,
+			ActionSpec: FileAction("op", op, source, dst),
 		})
 	}
 
@@ -174,15 +168,12 @@ func directoryResults(prefix, path, filter, op, source string) []Result {
 				KeepOpen:      true,
 			})
 		} else {
-			filePath := p
 			results = append(results, Result{
-				Type:  TypeFile,
-				Title: entry.Name(),
-				Desc:  shortenPath(path),
-				Icon:  getFileIcon(entry.Name()),
-				Action: func() {
-					Open(filePath)
-				},
+				Type:       TypeFile,
+				Title:      entry.Name(),
+				Desc:       shortenPath(path),
+				Icon:       getFileIcon(entry.Name()),
+				ActionSpec: OpenAction(p),
 			})
 		}
 	}

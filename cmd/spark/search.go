@@ -7,7 +7,6 @@ import (
 
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/tapiaw38/spark/internal/apps"
-	"github.com/tapiaw38/spark/internal/history"
 	"github.com/tapiaw38/spark/internal/modules"
 )
 
@@ -35,15 +34,11 @@ func appSearch(query string) []modules.Result {
 
 	out := make([]modules.Result, 0, len(matches))
 	for _, app := range matches {
-		a := app
 		out = append(out, modules.Result{
-			Type:  modules.TypeApp,
-			Title: a.Name,
-			Icon:  a.Icon,
-			Action: func() {
-				history.Record(a.Name)
-				apps.Launch(a)
-			},
+			Type:       modules.TypeApp,
+			Title:      app.Name,
+			Icon:       app.Icon,
+			ActionSpec: modules.AppAction(app.Name, app.Exec, app.Icon),
 		})
 	}
 	return out

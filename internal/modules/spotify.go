@@ -1,13 +1,12 @@
 package modules
 
 import (
+	"github.com/tapiaw38/spark/internal/platform/commands"
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/tapiaw38/spark/internal/config"
 )
@@ -145,8 +144,12 @@ func mediaPlayer(kind PlayerKind) string {
 	return fallback
 }
 
+func MediaPlayer(kind PlayerKind) string {
+	return mediaPlayer(kind)
+}
+
 func playerMetas() []playerMeta {
-	out, err := exec.Command("playerctl", "-l").Output()
+	out, err := commands.Command("playerctl", "-l").Output()
 	if err != nil {
 		return nil
 	}
@@ -255,25 +258,13 @@ func isBrowserPlayer(player string) bool {
 	return isFirefoxPlayer(player) || isChromeLikePlayer(player)
 }
 
-func playerctlMedia(player string, args ...string) *exec.Cmd {
+func playerctlMedia(player string, args ...string) *commands.Cmd {
 	all := append([]string{"--player=" + player}, args...)
-	return exec.Command("playerctl", all...)
+	return commands.Command("playerctl", all...)
 }
 
-func playerAction(kind PlayerKind, args ...string) func() {
-	return func() {
-		player := mediaPlayer(kind)
-		if player == "" {
-			SetStatus(false, string(kind)+" player not detected")
-			return
-		}
-		if err := playerctlMedia(player, args...).Run(); err != nil {
-			SetStatus(false, string(kind)+" command failed: "+strings.Join(args, " "))
-			time.AfterFunc(StatusClearDelay, func() { SetStatus(true, "") })
-			return
-		}
-		SetStatus(true, "")
-	}
+func PlayerAction(kind PlayerKind, args ...string) ActionSpec {
+	return ActionSpec{Kind: ActionPlayr, Target: string(kind), Args: args}
 }
 
 func PlayerControls(kind PlayerKind) []Result {
@@ -282,11 +273,11 @@ func PlayerControls(kind PlayerKind) []Result {
 		label = "YouTube"
 	}
 	return []Result{
-		{Type: TypeMediaControl, Title: "Play/Pause", Desc: label, Icon: "media-playback-start", Action: playerAction(kind, "play-pause")},
-		{Type: TypeMediaControl, Title: "Next", Desc: label, Icon: "media-skip-forward", Action: playerAction(kind, "next")},
-		{Type: TypeMediaControl, Title: "Previous", Desc: label, Icon: "media-skip-backward", Action: playerAction(kind, "previous")},
-		{Type: TypeMediaControl, Title: "Volume Up", Desc: "+10%", Icon: "audio-volume-high", Action: playerAction(kind, "volume", "0.1+")},
-		{Type: TypeMediaControl, Title: "Volume Down", Desc: "-10%", Icon: "audio-volume-low", Action: playerAction(kind, "volume", "0.1-")},
+		{Type: TypeMediaControl, Title: "Play/Pause", Desc: label, Icon: "media-playback-start", ActionSpec: PlayerAction(kind, "play-pause")},
+		{Type: TypeMediaControl, Title: "Next", Desc: label, Icon: "media-skip-forward", ActionSpec: PlayerAction(kind, "next")},
+		{Type: TypeMediaControl, Title: "Previous", Desc: label, Icon: "media-skip-backward", ActionSpec: PlayerAction(kind, "previous")},
+		{Type: TypeMediaControl, Title: "Volume Up", Desc: "+10%", Icon: "audio-volume-high", ActionSpec: PlayerAction(kind, "volume", "0.1+")},
+		{Type: TypeMediaControl, Title: "Volume Down", Desc: "-10%", Icon: "audio-volume-low", ActionSpec: PlayerAction(kind, "volume", "0.1-")},
 	}
 }
 
@@ -309,11 +300,11 @@ func YouTubePlayerControls(query string) []Result {
 	_, action, _ := playerForQuickControls(q)
 	switch action {
 	case "play", "pause":
-		return []Result{{Type: TypeYouTubePlayer, Title: "YouTube Play/Pause", Icon: "media-playback-start", Action: playerAction(PlayerYouTube, "play-pause")}}
+		return []Result{{Type: TypeYouTubePlayer, Title: "YouTube Play/Pause", Icon: "media-playback-start", ActionSpec: PlayerAction(PlayerYouTube, "play-pause")}}
 	case "next":
-		return []Result{{Type: TypeYouTubePlayer, Title: "YouTube Next", Icon: "media-skip-forward", Action: playerAction(PlayerYouTube, "next")}}
+		return []Result{{Type: TypeYouTubePlayer, Title: "YouTube Next", Icon: "media-skip-forward", ActionSpec: PlayerAction(PlayerYouTube, "next")}}
 	case "prev", "previous":
-		return []Result{{Type: TypeYouTubePlayer, Title: "YouTube Previous", Icon: "media-skip-backward", Action: playerAction(PlayerYouTube, "previous")}}
+		return []Result{{Type: TypeYouTubePlayer, Title: "YouTube Previous", Icon: "media-skip-backward", ActionSpec: PlayerAction(PlayerYouTube, "previous")}}
 	default:
 		return nil
 	}
@@ -326,11 +317,10 @@ func YouTubePlayerStatus(query string) []Result {
 	metas := playerMetas()
 	if len(metas) == 0 {
 		return []Result{{
-			Type:   TypeYouTubePlayer,
-			Title:  "No MPRIS players",
-			Desc:   "Open YouTube and run playerctl -l",
-			Icon:   "dialog-warning",
-			Action: func() {},
+			Type:  TypeYouTubePlayer,
+			Title: "No MPRIS players",
+			Desc:  "Open YouTube and run playerctl -l",
+			Icon:  "dialog-warning",
 		}}
 	}
 	var results []Result
@@ -364,13 +354,11 @@ func YouTubePlayerStatus(query string) []Result {
 			desc = "No title/url metadata"
 		}
 		results = append(results, Result{
-			Type:  TypeYouTubePlayer,
-			Title: title,
-			Desc:  desc,
-			Icon:  "media-playback-start",
-			Action: func() {
-				copyText("player=" + m.name + "\ntitle=" + m.title + "\nartist=" + m.artist + "\nurl=" + m.url)
-			},
+			Type:       TypeYouTubePlayer,
+			Title:      title,
+			Desc:       desc,
+			Icon:       "media-playback-start",
+			ActionSpec: CopyAction("player=" + m.name + "\ntitle=" + m.title + "\nartist=" + m.artist + "\nurl=" + m.url),
 		})
 	}
 	return results
@@ -453,9 +441,9 @@ func SpotifySearch(query string) []Result {
 		return nil
 	}
 	return []Result{{
-		Type:   TypeSpotify,
-		Title:  cmd.title,
-		Icon:   cmd.icon,
-		Action: playerAction(PlayerSpotify, cmd.arg),
+		Type:       TypeSpotify,
+		Title:      cmd.title,
+		Icon:       cmd.icon,
+		ActionSpec: PlayerAction(PlayerSpotify, cmd.arg),
 	}}
 }

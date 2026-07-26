@@ -16,11 +16,10 @@ func StatsSearch(query string) []Result {
 	counts := history.Snapshot()
 	if len(counts) == 0 {
 		return []Result{{
-			Type:   TypeStats,
-			Title:  "No Usage Stats Yet",
-			Desc:   "Launch apps to build stats",
-			Icon:   "utilities-system-monitor",
-			Action: func() {},
+			Type:  TypeStats,
+			Title: "No Usage Stats Yet",
+			Desc:  "Launch apps to build stats",
+			Icon:  "utilities-system-monitor",
 		}}
 	}
 
@@ -38,33 +37,31 @@ func StatsSearch(query string) []Result {
 		return stats[i].count > stats[j].count
 	})
 
+	statsAction := ActionSpec{}
+	if exe, err := os.Executable(); err == nil {
+		statsAction = StartAction(exe, "--stats-window")
+	}
 	results := []Result{
 		{
-			Type:  TypeStats,
-			Title: "Open Stats Graph",
-			Desc:  stringInt(total) + " total launches",
-			Icon:  "utilities-system-monitor",
-			Action: func() {
-				if exe, err := os.Executable(); err == nil {
-					Start(exe, "--stats-window")
-				}
-			},
+			Type:       TypeStats,
+			Title:      "Open Stats Graph",
+			Desc:       stringInt(total) + " total launches",
+			Icon:       "utilities-system-monitor",
+			ActionSpec: statsAction,
 		},
 		{
-			Type:   TypeStats,
-			Title:  "Total App Launches",
-			Desc:   stringInt(total),
-			Icon:   "utilities-system-monitor",
-			Action: func() {},
+			Type:  TypeStats,
+			Title: "Total App Launches",
+			Desc:  stringInt(total),
+			Icon:  "utilities-system-monitor",
 		},
 	}
 	for _, stat := range stats {
 		results = append(results, Result{
-			Type:   TypeStats,
-			Title:  stat.name,
-			Desc:   statBar(stat.count, stats[0].count) + " " + stringInt(stat.count) + " launches",
-			Icon:   "utilities-system-monitor",
-			Action: func() {},
+			Type:  TypeStats,
+			Title: stat.name,
+			Desc:  statBar(stat.count, stats[0].count) + " " + stringInt(stat.count) + " launches",
+			Icon:  "utilities-system-monitor",
 		})
 		if len(results) >= MaxStatsResults {
 			break

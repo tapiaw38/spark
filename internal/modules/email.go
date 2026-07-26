@@ -1,9 +1,6 @@
 package modules
 
 import (
-	"net/url"
-	"os"
-	"os/exec"
 	"strings"
 )
 
@@ -22,13 +19,11 @@ func EmailSearch(query string) []Result {
 	}
 	if body == "" {
 		return []Result{{
-			Type:  TypeEmail,
-			Title: "Open Email Composer",
-			Desc:  "Type: email person@example.com subject",
-			Icon:  "internet-mail",
-			Action: func() {
-				openEmailComposer("", "", "")
-			},
+			Type:       TypeEmail,
+			Title:      "Open Email Composer",
+			Desc:       "Type: email person@example.com subject",
+			Icon:       "internet-mail",
+			ActionSpec: EmailWindowAction("", "", ""),
 		}}
 	}
 
@@ -44,86 +39,19 @@ func EmailSearch(query string) []Result {
 	}
 	return []Result{
 		{
-			Type:  TypeEmail,
-			Title: "Open Email Composer",
-			Desc:  to + " | " + subject,
-			Icon:  "internet-mail",
-			Action: func() {
-				openEmailComposer(to, subject, mailBody)
-			},
+			Type:       TypeEmail,
+			Title:      "Open Email Composer",
+			Desc:       to + " | " + subject,
+			Icon:       "internet-mail",
+			ActionSpec: EmailWindowAction(to, subject, mailBody),
 		},
 		{
-			Type:  TypeEmail,
-			Title: title,
-			Desc:  subject,
-			Icon:  "internet-mail",
-			Action: func() {
-				sendEmail(to, subject, mailBody)
-			},
+			Type:       TypeEmail,
+			Title:      title,
+			Desc:       subject,
+			Icon:       "internet-mail",
+			ActionSpec: EmailAction(to, subject, mailBody),
 		},
-	}
-}
-
-func openEmailComposer(to, subject, body string) {
-	if exe, err := os.Executable(); err == nil {
-		Start(exe, "--email-window", to, subject, body)
-	}
-}
-
-func sendEmail(to, subject, mailBody string) {
-	SendEmailFull(to, subject, mailBody, nil)
-}
-
-func SendEmailFull(to, subject, mailBody string, attachments []string) {
-	args := []string{}
-	if subject != "" {
-		args = append(args, "--subject", subject)
-	}
-	if mailBody != "" {
-		args = append(args, "--body", mailBody)
-	}
-	for _, path := range attachments {
-		if path != "" {
-			args = append(args, "--attach", path)
-		}
-	}
-	if to != "" {
-		args = append(args, to)
-	}
-	if len(attachments) == 0 && mailBody != "" {
-		link := "mailto:" + url.QueryEscape(to) + "?subject=" + url.QueryEscape(subject) + "&body=" + url.QueryEscape(mailBody)
-		if Open(link) {
-			SetStatus(true, "Email compose opened")
-		}
-		return
-	}
-	if err := exec.Command("xdg-email", args...).Start(); err != nil {
-		SetStatus(false, "Email failed: "+err.Error())
-	} else {
-		SetStatus(true, "Email compose opened")
-	}
-}
-
-func EmailFile(path string) {
-	if err := exec.Command("xdg-email", "--attach", path).Start(); err != nil {
-		SetStatus(false, "Email file failed: "+err.Error())
-	} else {
-		SetStatus(true, "Email compose opened with attachment")
-	}
-}
-
-func EmailFiles(paths []string) {
-	args := make([]string, 0, len(paths)*2)
-	for _, path := range paths {
-		if path == "" {
-			continue
-		}
-		args = append(args, "--attach", path)
-	}
-	if err := exec.Command("xdg-email", args...).Start(); err != nil {
-		SetStatus(false, "Email buffer failed: "+err.Error())
-	} else {
-		SetStatus(true, "Email compose opened with buffer")
 	}
 }
 

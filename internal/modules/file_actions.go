@@ -3,9 +3,7 @@ package modules
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -26,87 +24,69 @@ func FileActions(path string) []Result {
 
 	return []Result{
 		{
-			Type:  TypeFileAction,
-			Title: "Open",
-			Desc:  path,
-			Icon:  "document-open",
-			Action: func() {
-				Open(path)
-			},
+			Type:       TypeFileAction,
+			Title:      "Open",
+			Desc:       path,
+			Icon:       "document-open",
+			ActionSpec: OpenAction(path),
 		},
 		{
-			Type:  TypeFileAction,
-			Title: "Reveal in Files",
-			Desc:  filepath.Dir(path),
-			Icon:  "folder-open",
-			Action: func() {
-				revealFile(path)
-			},
+			Type:       TypeFileAction,
+			Title:      "Reveal in Files",
+			Desc:       filepath.Dir(path),
+			Icon:       "folder-open",
+			ActionSpec: FileAction("reveal", path),
 		},
 		{
-			Type:  TypeFileAction,
-			Title: "Copy Path",
-			Desc:  path,
-			Icon:  "edit-copy",
-			Action: func() {
-				copyText(path)
-			},
+			Type:       TypeFileAction,
+			Title:      "Copy Path",
+			Desc:       path,
+			Icon:       "edit-copy",
+			ActionSpec: CopyAction(path),
 		},
 		{
-			Type:  TypeFileAction,
-			Title: "Rename...",
-			Desc:  "Edit name in file operation window",
-			Icon:  "edit-rename",
-			Action: func() {
-				openFileOpWindow("rename", path, filepath.Base(path))
-			},
+			Type:       TypeFileAction,
+			Title:      "Rename...",
+			Desc:       "Edit name in file operation window",
+			Icon:       "edit-rename",
+			ActionSpec: FileAction("op-window", "rename", path, filepath.Base(path)),
 		},
 		{
-			Type:  TypeFileAction,
-			Title: "Copy To...",
-			Desc:  "Choose destination in file operation window",
-			Icon:  "edit-copy",
-			Action: func() {
-				openFileOpWindow("copy", path, filepath.Dir(path))
-			},
+			Type:       TypeFileAction,
+			Title:      "Copy To...",
+			Desc:       "Choose destination in file operation window",
+			Icon:       "edit-copy",
+			ActionSpec: FileAction("op-window", "copy", path, filepath.Dir(path)),
 		},
 		{
-			Type:  TypeFileAction,
-			Title: "Move To...",
-			Desc:  "Choose destination in file operation window",
-			Icon:  "go-jump",
-			Action: func() {
-				openFileOpWindow("move", path, filepath.Dir(path))
-			},
+			Type:       TypeFileAction,
+			Title:      "Move To...",
+			Desc:       "Choose destination in file operation window",
+			Icon:       "go-jump",
+			ActionSpec: FileAction("op-window", "move", path, filepath.Dir(path)),
 		},
 		{
-			Type:     TypeFileAction,
-			Title:    "Add to Buffer",
-			Desc:     bufferSummary(1),
-			Icon:     "list-add",
-			KeepOpen: true,
-			Action: func() {
-				AddFileToBuffer(path)
-			},
+			Type:       TypeFileAction,
+			Title:      "Add to Buffer",
+			Desc:       bufferSummary(1),
+			Icon:       "list-add",
+			KeepOpen:   true,
+			ActionSpec: StateAction("file-buffer-add", path),
 		},
 		{
-			Type:  TypeFileAction,
-			Title: "Email File",
-			Desc:  path,
-			Icon:  "internet-mail",
-			Action: func() {
-				EmailFile(path)
-			},
+			Type:       TypeFileAction,
+			Title:      "Email File",
+			Desc:       path,
+			Icon:       "internet-mail",
+			ActionSpec: EmailAction("", "", "", path),
 		},
 		{
-			Type:    TypeFileAction,
-			Title:   "Move to Trash",
-			Desc:    path,
-			Icon:    "user-trash",
-			Confirm: true,
-			Action: func() {
-				moveToTrash(path)
-			},
+			Type:       TypeFileAction,
+			Title:      "Move to Trash",
+			Desc:       path,
+			Icon:       "user-trash",
+			Confirm:    true,
+			ActionSpec: FileAction("trash", path),
 		},
 	}
 }
@@ -119,78 +99,59 @@ func FileBufferSearch(query string) []Result {
 	paths := FileBuffer()
 	if len(paths) == 0 {
 		return []Result{{
-			Type:   TypeFileBuffer,
-			Title:  "File Buffer Empty",
-			Desc:   "Select file result, press Tab, choose Add to Buffer",
-			Icon:   "folder",
-			Action: func() {},
+			Type:  TypeFileBuffer,
+			Title: "File Buffer Empty",
+			Desc:  "Select file result, press Tab, choose Add to Buffer",
+			Icon:  "folder",
 		}}
 	}
 
 	results := []Result{
 		{
-			Type:  TypeFileBufferAction,
-			Title: "Open Buffered Files",
-			Desc:  bufferSummary(len(paths)),
-			Icon:  "document-open",
-			Action: func() {
-				for _, p := range FileBuffer() {
-					Open(p)
-				}
-			},
+			Type:       TypeFileBufferAction,
+			Title:      "Open Buffered Files",
+			Desc:       bufferSummary(len(paths)),
+			Icon:       "document-open",
+			ActionSpec: MusicAction("open-files", paths...),
 		},
 		{
-			Type:  TypeFileBufferAction,
-			Title: "Copy Buffered Paths",
-			Desc:  bufferSummary(len(paths)),
-			Icon:  "edit-copy",
-			Action: func() {
-				copyText(strings.Join(FileBuffer(), "\n"))
-			},
+			Type:       TypeFileBufferAction,
+			Title:      "Copy Buffered Paths",
+			Desc:       bufferSummary(len(paths)),
+			Icon:       "edit-copy",
+			ActionSpec: CopyAction(strings.Join(paths, "\n")),
 		},
 		{
-			Type:  TypeFileBufferAction,
-			Title: "Reveal First Buffered File",
-			Desc:  filepath.Dir(paths[0]),
-			Icon:  "folder-open",
-			Action: func() {
-				current := FileBuffer()
-				if len(current) > 0 {
-					revealFile(current[0])
-				}
-			},
+			Type:       TypeFileBufferAction,
+			Title:      "Reveal First Buffered File",
+			Desc:       filepath.Dir(paths[0]),
+			Icon:       "folder-open",
+			ActionSpec: FileAction("reveal", paths[0]),
 		},
 		{
-			Type:  TypeFileBufferAction,
-			Title: "Email Buffered Files",
-			Desc:  bufferSummary(len(paths)),
-			Icon:  "internet-mail",
-			Action: func() {
-				EmailFiles(FileBuffer())
-			},
+			Type:       TypeFileBufferAction,
+			Title:      "Email Buffered Files",
+			Desc:       bufferSummary(len(paths)),
+			Icon:       "internet-mail",
+			ActionSpec: EmailAction("", "", "", paths...),
 		},
 		{
-			Type:     TypeFileBufferAction,
-			Title:    "Clear Buffer",
-			Desc:     bufferSummary(len(paths)),
-			Icon:     "edit-clear",
-			KeepOpen: true,
-			Action: func() {
-				ClearFileBuffer()
-			},
+			Type:       TypeFileBufferAction,
+			Title:      "Clear Buffer",
+			Desc:       bufferSummary(len(paths)),
+			Icon:       "edit-clear",
+			KeepOpen:   true,
+			ActionSpec: StateAction("file-buffer-clear"),
 		},
 	}
 
 	for _, path := range paths {
-		p := path
 		results = append(results, Result{
-			Type:  TypeFile,
-			Title: filepath.Base(p),
-			Desc:  shortenPath(filepath.Dir(p)),
-			Icon:  getFileIcon(p),
-			Action: func() {
-				Open(p)
-			},
+			Type:       TypeFile,
+			Title:      filepath.Base(path),
+			Desc:       shortenPath(filepath.Dir(path)),
+			Icon:       getFileIcon(path),
+			ActionSpec: OpenAction(path),
 		})
 	}
 	return results
@@ -246,37 +207,6 @@ func saveFileBufferLocked() {
 	os.MkdirAll(filepath.Dir(fileBufferPath()), 0755)
 	data, _ := json.Marshal(fileBuffer)
 	os.WriteFile(fileBufferPath(), data, 0644)
-}
-
-func revealFile(path string) {
-	if _, err := exec.LookPath("dbus-send"); err == nil {
-		uri := (&url.URL{Scheme: "file", Path: filepath.ToSlash(path)}).String()
-		Start("dbus-send", "--session", "--dest=org.freedesktop.FileManager1", "--type=method_call", "/org/freedesktop/FileManager1", "org.freedesktop.FileManager1.ShowItems", "array:string:"+uri, "string:")
-		return
-	}
-	Start("xdg-open", filepath.Dir(path))
-}
-
-func copyText(text string) {
-	cmd := exec.Command("wl-copy")
-	cmd.Stdin = strings.NewReader(text)
-	cmd.Run()
-}
-
-func moveToTrash(path string) {
-	if _, err := exec.LookPath("gio"); err == nil {
-		if exec.Command("gio", "trash", path).Run() == nil {
-			SetTrashUndo()
-		}
-		return
-	}
-	Run("kioclient6", "move", path, "trash:/")
-}
-
-func openFileOpWindow(op, source, target string) {
-	if exe, err := os.Executable(); err == nil {
-		Start(exe, "--file-op-window", op, source, target)
-	}
 }
 
 func bufferSummary(count int) string {

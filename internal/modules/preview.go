@@ -2,8 +2,8 @@ package modules
 
 import (
 	"archive/zip"
+	"github.com/tapiaw38/spark/internal/platform/commands"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -182,11 +182,11 @@ func previewTextFile(path string) string {
 }
 
 func previewPDF(path string) string {
-	if _, err := exec.LookPath("pdftotext"); err != nil {
+	if _, err := commands.LookPath("pdftotext"); err != nil {
 		return "[PDF file]"
 	}
 
-	out, err := exec.Command("pdftotext", "-f", "1", "-l", "1", "-layout", path, "-").Output()
+	out, err := commands.Command("pdftotext", "-f", "1", "-l", "1", "-layout", path, "-").Output()
 	if err != nil {
 		return "[PDF file]"
 	}
@@ -199,7 +199,7 @@ func previewPDFImage(path string) string {
 }
 
 func previewPDFImageAt(path string, page, scale int) string {
-	if _, err := exec.LookPath("pdftoppm"); err != nil {
+	if _, err := commands.LookPath("pdftoppm"); err != nil {
 		return ""
 	}
 	if page < 1 {
@@ -217,7 +217,7 @@ func previewPDFImageAt(path string, page, scale int) string {
 	if _, err := os.Stat(png); err == nil {
 		return png
 	}
-	Run("pdftoppm", "-png", "-singlefile", "-f", stringInt(page), "-l", stringInt(page), "-scale-to", stringInt(scale), path, base)
+	commands.Command("pdftoppm", "-png", "-singlefile", "-f", stringInt(page), "-l", stringInt(page), "-scale-to", stringInt(scale), path, base).Run()
 	if _, err := os.Stat(png); err == nil {
 		return png
 	}
@@ -234,7 +234,7 @@ func previewOfficePDF(path string) string {
 		return target
 	}
 	cmdName := "libreoffice"
-	if _, err := exec.LookPath(cmdName); err != nil {
+	if _, err := commands.LookPath(cmdName); err != nil {
 		cmdName = "soffice"
 	}
 	tmpDir := filepath.Join(cacheDir, simpleHash(path)+"-work")
@@ -266,10 +266,10 @@ func previewOfficePDF(path string) string {
 
 func convertOfficeToPDF(path, outDir string) bool {
 	for _, attempt := range officeConvertCommands(path, outDir) {
-		if _, err := exec.LookPath(attempt[0]); err != nil {
+		if _, err := commands.LookPath(attempt[0]); err != nil {
 			continue
 		}
-		if exec.Command(attempt[0], attempt[1:]...).Run() == nil {
+		if commands.Command(attempt[0], attempt[1:]...).Run() == nil {
 			if hasPDF(outDir) {
 				return true
 			}
@@ -305,11 +305,11 @@ func hasPDF(dir string) bool {
 }
 
 func previewAudio(path string) string {
-	if _, err := exec.LookPath("ffprobe"); err != nil {
+	if _, err := commands.LookPath("ffprobe"); err != nil {
 		return "[Audio file]"
 	}
 
-	out, err := exec.Command("ffprobe", "-v", "quiet", "-show_entries",
+	out, err := commands.Command("ffprobe", "-v", "quiet", "-show_entries",
 		"format=duration", "-of", "default=noprint_wrappers=1:nokey=1", path).Output()
 	if err != nil {
 		return "[Audio file]"

@@ -3,12 +3,12 @@ package apps
 import (
 	"bufio"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/tapiaw38/spark/internal/config"
 	"github.com/tapiaw38/spark/internal/history"
+	"github.com/tapiaw38/spark/internal/platform/commands"
 )
 
 type App struct {
@@ -238,7 +238,7 @@ func fuzzyScore(name, query string) int {
 
 func Launch(app App) error {
 	parts := strings.Fields(app.Exec)
-	cmd := exec.Command(parts[0], parts[1:]...)
+	cmd := commands.Command(parts[0], parts[1:]...)
 	cmd.Stdin = nil
 	cmd.Stdout = nil
 	cmd.Stderr = nil

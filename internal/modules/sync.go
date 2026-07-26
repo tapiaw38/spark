@@ -25,115 +25,76 @@ func SyncSearch(query string) []Result {
 	if strings.HasPrefix(q, "sync import ") {
 		zipPath := strings.TrimSpace(query[len("sync import "):])
 		return []Result{{
-			Type:    TypeSync,
-			Title:   "Import Spark Settings",
-			Desc:    zipPath,
-			Icon:    "document-open",
-			Confirm: true,
-			Action: func() {
-				if err := importSyncZip(expandHome(zipPath), os.Getenv("HOME")); err != nil {
-					SetStatus(false, "Sync import failed: "+err.Error())
-				} else {
-					SetStatus(true, "Imported Spark settings from "+zipPath)
-				}
-			},
+			Type:       TypeSync,
+			Title:      "Import Spark Settings",
+			Desc:       zipPath,
+			Icon:       "document-open",
+			Confirm:    true,
+			ActionSpec: SyncAction("import", expandHome(zipPath), os.Getenv("HOME")),
 		}}
 	}
 
 	return []Result{
 		{
-			Type:  TypeSync,
-			Title: "Open Settings Folder",
-			Desc:  configDir,
-			Icon:  "folder-open",
-			Action: func() {
-				Open(configDir)
-			},
+			Type:       TypeSync,
+			Title:      "Open Settings Folder",
+			Desc:       configDir,
+			Icon:       "folder-open",
+			ActionSpec: OpenAction(configDir),
 		},
 		{
-			Type:  TypeSync,
-			Title: "Copy Sync Paths",
-			Desc:  "~/.config/spark + ~/.local/share/spark",
-			Icon:  "edit-copy",
-			Action: func() {
-				copyText(paths)
-			},
+			Type:       TypeSync,
+			Title:      "Copy Sync Paths",
+			Desc:       "~/.config/spark + ~/.local/share/spark",
+			Icon:       "edit-copy",
+			ActionSpec: CopyAction(paths),
 		},
 		{
-			Type:  TypeSync,
-			Title: "Export Settings Zip",
-			Desc:  exportPath,
-			Icon:  "document-save",
-			Action: func() {
-				if err := exportSyncZip(exportPath, []string{configDir, dataDir}); err != nil {
-					SetStatus(false, "Sync export failed: "+err.Error())
-				} else {
-					SetStatus(true, "Exported Spark settings to "+exportPath)
-					revealFile(exportPath)
-				}
-			},
+			Type:       TypeSync,
+			Title:      "Export Settings Zip",
+			Desc:       exportPath,
+			Icon:       "document-save",
+			ActionSpec: SyncAction("export", exportPath, configDir, dataDir),
 		},
 		{
-			Type:  TypeSync,
-			Title: "Sync with Git/Syncthing",
-			Desc:  "Track copied paths with external sync",
-			Icon:  "emblem-synchronizing",
-			Action: func() {
-				copyText("Sync these Spark paths:\n" + paths)
-			},
+			Type:       TypeSync,
+			Title:      "Sync with Git/Syncthing",
+			Desc:       "Track copied paths with external sync",
+			Icon:       "emblem-synchronizing",
+			ActionSpec: CopyAction("Sync these Spark paths:\n" + paths),
 		},
 		{
-			Type:  TypeSync,
-			Title: "Copy Git Bootstrap",
-			Desc:  "~/.config/spark",
-			Icon:  "git",
-			Action: func() {
-				copyText("cd ~/.config/spark\ngit init\ngit add .\ngit commit -m 'sync spark settings'\n")
-			},
+			Type:       TypeSync,
+			Title:      "Copy Git Bootstrap",
+			Desc:       "~/.config/spark",
+			Icon:       "git",
+			ActionSpec: CopyAction("cd ~/.config/spark\ngit init\ngit add .\ngit commit -m 'sync spark settings'\n"),
 		},
 		{
-			Type:  TypeSync,
-			Title: "Create Git Bootstrap Script",
-			Desc:  filepath.Join(configDir, "spark-sync-git.sh"),
-			Icon:  "document-save",
-			Action: func() {
-				path := filepath.Join(configDir, "spark-sync-git.sh")
-				if err := writeSyncScript(path, configDir, dataDir); err != nil {
-					SetStatus(false, "Git sync script failed: "+err.Error())
-				} else {
-					SetStatus(true, "Git sync script created: "+path)
-				}
-			},
+			Type:       TypeSync,
+			Title:      "Create Git Bootstrap Script",
+			Desc:       filepath.Join(configDir, "spark-sync-git.sh"),
+			Icon:       "document-save",
+			ActionSpec: SyncAction("script", filepath.Join(configDir, "spark-sync-git.sh"), configDir, dataDir),
 		},
 		{
-			Type:  TypeSync,
-			Title: "Open Syncthing",
-			Desc:  "http://127.0.0.1:8384",
-			Icon:  "emblem-synchronizing",
-			Action: func() {
-				Open("http://127.0.0.1:8384")
-			},
+			Type:       TypeSync,
+			Title:      "Open Syncthing",
+			Desc:       "http://127.0.0.1:8384",
+			Icon:       "emblem-synchronizing",
+			ActionSpec: OpenAction("http://127.0.0.1:8384"),
 		},
 		{
-			Type:  TypeSync,
-			Title: "Create Sync Profile",
-			Desc:  filepath.Join(configDir, "sync-profile.txt"),
-			Icon:  "document-save",
-			Action: func() {
-				path := filepath.Join(configDir, "sync-profile.txt")
-				os.MkdirAll(configDir, 0755)
-				content := "Spark sync paths:\n" + paths + "\n\nSyncthing:\n- Add both folders as send/receive folders.\n- Keep ignore patterns for cache files.\n\nGit:\ncd " + configDir + "\ngit init\ngit add .\ngit commit -m 'sync spark config'\n\nData:\ncd " + dataDir + "\ngit init\ngit add .\ngit commit -m 'sync spark data'\n"
-				if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-					SetStatus(false, "Sync profile failed: "+err.Error())
-				} else {
-					SetStatus(true, "Sync profile created: "+path)
-				}
-			},
+			Type:       TypeSync,
+			Title:      "Create Sync Profile",
+			Desc:       filepath.Join(configDir, "sync-profile.txt"),
+			Icon:       "document-save",
+			ActionSpec: SyncAction("profile", filepath.Join(configDir, "sync-profile.txt"), configDir, dataDir),
 		},
 	}
 }
 
-func writeSyncScript(path, configDir, dataDir string) error {
+func WriteSyncScript(path, configDir, dataDir string) error {
 	os.MkdirAll(filepath.Dir(path), 0755)
 	content := "#!/bin/sh\nset -eu\nfor dir in '" + configDir + "' '" + dataDir + "'; do\n  mkdir -p \"$dir\"\n  cd \"$dir\"\n  if [ ! -d .git ]; then git init; fi\n  git add .\n  git commit -m 'sync spark settings' || true\ndone\n"
 	if err := os.WriteFile(path, []byte(content), 0755); err != nil {
@@ -142,7 +103,14 @@ func writeSyncScript(path, configDir, dataDir string) error {
 	return nil
 }
 
-func exportSyncZip(target string, paths []string) error {
+func WriteSyncProfile(path, configDir, dataDir string) error {
+	os.MkdirAll(filepath.Dir(path), 0755)
+	paths := configDir + "\n" + dataDir
+	content := "Spark sync paths:\n" + paths + "\n\nSyncthing:\n- Add both folders as send/receive folders.\n- Keep ignore patterns for cache files.\n\nGit:\ncd " + configDir + "\ngit init\ngit add .\ngit commit -m 'sync spark config'\n\nData:\ncd " + dataDir + "\ngit init\ngit add .\ngit commit -m 'sync spark data'\n"
+	return os.WriteFile(path, []byte(content), 0644)
+}
+
+func ExportSyncZip(target string, paths []string) error {
 	os.MkdirAll(filepath.Dir(target), 0755)
 	out, err := os.Create(target)
 	if err != nil {
@@ -184,7 +152,7 @@ func exportSyncZip(target string, paths []string) error {
 	return nil
 }
 
-func importSyncZip(source, home string) error {
+func ImportSyncZip(source, home string) error {
 	reader, err := zip.OpenReader(source)
 	if err != nil {
 		return err

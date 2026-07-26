@@ -1,8 +1,8 @@
 package main
 
 import (
+	cmdrunner "github.com/tapiaw38/spark/internal/platform/commands"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -251,22 +251,22 @@ func fileOpBreadcrumb(path string) string {
 }
 
 func choosePath(directory bool) string {
-	if _, err := exec.LookPath("zenity"); err == nil {
+	if _, err := cmdrunner.LookPath("zenity"); err == nil {
 		args := []string{"--file-selection"}
 		if directory {
 			args = append(args, "--directory")
 		}
-		out, err := exec.Command("zenity", args...).Output()
+		out, err := cmdrunner.Command("zenity", args...).Output()
 		if err == nil {
 			return strings.TrimSpace(string(out))
 		}
 	}
-	if _, err := exec.LookPath("kdialog"); err == nil {
+	if _, err := cmdrunner.LookPath("kdialog"); err == nil {
 		args := []string{"--getopenfilename"}
 		if directory {
 			args = []string{"--getexistingdirectory"}
 		}
-		out, err := exec.Command("kdialog", args...).Output()
+		out, err := cmdrunner.Command("kdialog", args...).Output()
 		if err == nil {
 			return strings.TrimSpace(string(out))
 		}

@@ -12,11 +12,10 @@ func LargeTypeSearch(query string) []Result {
 	}
 	if text == "" {
 		return []Result{{
-			Type:   TypeLargeType,
-			Title:  "Large Type",
-			Desc:   "Type: large text",
-			Icon:   "preferences-desktop-font",
-			Action: func() {},
+			Type:  TypeLargeType,
+			Title: "Large Type",
+			Desc:  "Type: large text",
+			Icon:  "preferences-desktop-font",
 		}}
 	}
 	allMonitors := false
@@ -24,30 +23,28 @@ func LargeTypeSearch(query string) []Result {
 		allMonitors = true
 		text = strings.TrimSpace(text[4:])
 	}
+	largeTypeAction := ActionSpec{}
+	if exe, err := os.Executable(); err == nil {
+		args := []string{"--large-type", text}
+		if allMonitors {
+			args = []string{"--large-type-all", text}
+		}
+		largeTypeAction = StartAction(exe, args...)
+	}
 	return []Result{
 		{
-			Type:  TypeLargeType,
-			Title: "Show Large Type",
-			Desc:  text,
-			Icon:  "preferences-desktop-font",
-			Action: func() {
-				if exe, err := os.Executable(); err == nil {
-					args := []string{"--large-type", text}
-					if allMonitors {
-						args = []string{"--large-type-all", text}
-					}
-					Start(exe, args...)
-				}
-			},
+			Type:       TypeLargeType,
+			Title:      "Show Large Type",
+			Desc:       text,
+			Icon:       "preferences-desktop-font",
+			ActionSpec: largeTypeAction,
 		},
 		{
-			Type:  TypeLargeType,
-			Title: "Copy Text",
-			Desc:  text,
-			Icon:  "edit-copy",
-			Action: func() {
-				copyText(text)
-			},
+			Type:       TypeLargeType,
+			Title:      "Copy Text",
+			Desc:       text,
+			Icon:       "edit-copy",
+			ActionSpec: CopyAction(text),
 		},
 	}
 }

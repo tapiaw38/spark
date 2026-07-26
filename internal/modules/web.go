@@ -2,7 +2,6 @@ package modules
 
 import (
 	"net/url"
-	"os/exec"
 	"strings"
 
 	"github.com/tapiaw38/spark/internal/config"
@@ -25,14 +24,11 @@ func WebSearch(query string) []Result {
 	searchURL := strings.Replace(shortcut.URL, "%s", url.QueryEscape(searchQuery), 1)
 
 	return []Result{{
-		Type:  TypeWeb,
-		Title: shortcut.Name + ": " + searchQuery,
-		Desc:  "Search on " + shortcut.Name,
-		Icon:  shortcut.Icon,
-		Action: func() {
-			cmd := exec.Command("xdg-open", searchURL)
-			cmd.Start()
-		},
+		Type:       TypeWeb,
+		Title:      shortcut.Name + ": " + searchQuery,
+		Desc:       "Search on " + shortcut.Name,
+		Icon:       shortcut.Icon,
+		ActionSpec: OpenAction(searchURL),
 	}}
 }
 
@@ -44,13 +40,10 @@ func FallbackWebSearch(query string) []Result {
 	searchURL := "https://www.google.com/search?q=" + url.QueryEscape(query)
 
 	return []Result{{
-		Type:  TypeWeb,
-		Title: "Search Google: " + query,
-		Desc:  "No results found, search on Google",
-		Icon:  "web-browser",
-		Action: func() {
-			cmd := exec.Command("xdg-open", searchURL)
-			cmd.Start()
-		},
+		Type:       TypeWeb,
+		Title:      "Search Google: " + query,
+		Desc:       "No results found, search on Google",
+		Icon:       "web-browser",
+		ActionSpec: OpenAction(searchURL),
 	}}
 }

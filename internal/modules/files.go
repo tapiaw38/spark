@@ -2,8 +2,8 @@ package modules
 
 import (
 	"context"
+	"github.com/tapiaw38/spark/internal/platform/commands"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -67,19 +67,17 @@ func FileLoading(query string) []Result {
 	}
 	if len(term) < 3 {
 		return []Result{{
-			Type:   TypeFile,
-			Title:  "Find Files",
-			Desc:   "Type f <name>, for example f pdf",
-			Icon:   "system-search",
-			Action: func() {},
+			Type:  TypeFile,
+			Title: "Find Files",
+			Desc:  "Type f <name>, for example f pdf",
+			Icon:  "system-search",
 		}}
 	}
 	return []Result{{
-		Type:   TypeFile,
-		Title:  "Searching files...",
-		Desc:   term,
-		Icon:   "system-search",
-		Action: func() {},
+		Type:  TypeFile,
+		Title: "Searching files...",
+		Desc:  term,
+		Icon:  "system-search",
 	}}
 }
 
@@ -102,11 +100,11 @@ func doFileSearch(ctx context.Context, term string) []Result {
 	ctx, cancel := context.WithTimeout(ctx, FileSearchTimeout)
 	defer cancel()
 
-	var cmd *exec.Cmd
-	if _, err := exec.LookPath("fd"); err == nil {
-		cmd = exec.CommandContext(ctx, "fd", "--type", "f", term, os.Getenv("HOME"))
+	var cmd *commands.Cmd
+	if _, err := commands.LookPath("fd"); err == nil {
+		cmd = commands.CommandContext(ctx, "fd", "--type", "f", term, os.Getenv("HOME"))
 	} else {
-		cmd = exec.CommandContext(ctx, "find", os.Getenv("HOME"), "-maxdepth", "4", "-type", "f", "-iname", "*"+term+"*")
+		cmd = commands.CommandContext(ctx, "find", os.Getenv("HOME"), "-maxdepth", "4", "-type", "f", "-iname", "*"+term+"*")
 	}
 
 	output, err := cmd.Output()
@@ -127,13 +125,11 @@ func doFileSearch(ctx context.Context, term string) []Result {
 		icon := getFileIcon(name)
 
 		results = append(results, Result{
-			Type:  TypeFile,
-			Title: name,
-			Desc:  shortenPath(dir),
-			Icon:  icon,
-			Action: func() {
-				Open(p)
-			},
+			Type:       TypeFile,
+			Title:      name,
+			Desc:       shortenPath(dir),
+			Icon:       icon,
+			ActionSpec: OpenAction(p),
 		})
 	}
 

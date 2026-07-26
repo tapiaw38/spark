@@ -2,8 +2,8 @@ package modules
 
 import (
 	"encoding/json"
+	"github.com/tapiaw38/spark/internal/platform/commands"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -38,22 +38,20 @@ func MusicSearch(query string) []Result {
 	}
 	if len(term) < 2 {
 		return []Result{{
-			Type:   TypeMusic,
-			Title:  "Browse Music",
-			Desc:   "m artists / m albums / m genres / m <song>",
-			Icon:   "folder-music",
-			Action: func() {},
+			Type:  TypeMusic,
+			Title: "Browse Music",
+			Desc:  "m artists / m albums / m genres / m <song>",
+			Icon:  "folder-music",
 		}}
 	}
 
 	musicDir := config.HomeFile("Music")
 	if _, err := os.Stat(musicDir); err != nil {
 		return []Result{{
-			Type:   TypeMusic,
-			Title:  "Music folder not found",
-			Desc:   musicDir,
-			Icon:   "folder-music",
-			Action: func() {},
+			Type:  TypeMusic,
+			Title: "Music folder not found",
+			Desc:  musicDir,
+			Icon:  "folder-music",
 		}}
 	}
 
@@ -64,25 +62,20 @@ func MusicSearch(query string) []Result {
 	}
 	results := make([]Result, 0, len(paths))
 	for _, path := range paths {
-		p := path
 		results = append(results, Result{
-			Type:  TypeMusic,
-			Title: strings.TrimSuffix(filepath.Base(p), filepath.Ext(p)),
-			Desc:  shortenPath(filepath.Dir(p)),
-			Icon:  "audio-x-generic",
-			Action: func() {
-				Open(p)
-			},
+			Type:       TypeMusic,
+			Title:      strings.TrimSuffix(filepath.Base(path), filepath.Ext(path)),
+			Desc:       shortenPath(filepath.Dir(path)),
+			Icon:       "audio-x-generic",
+			ActionSpec: OpenAction(path),
 		})
 		results = append(results, Result{
-			Type:     TypeMusic,
-			Title:    "Queue: " + strings.TrimSuffix(filepath.Base(p), filepath.Ext(p)),
-			Desc:     shortenPath(filepath.Dir(p)),
-			Icon:     "list-add",
-			KeepOpen: true,
-			Action: func() {
-				AddMusicToQueue(p)
-			},
+			Type:       TypeMusic,
+			Title:      "Queue: " + strings.TrimSuffix(filepath.Base(path), filepath.Ext(path)),
+			Desc:       shortenPath(filepath.Dir(path)),
+			Icon:       "list-add",
+			KeepOpen:   true,
+			ActionSpec: StateAction("music-queue-add", path),
 		})
 	}
 	return results
@@ -95,53 +88,43 @@ func MusicQueueSearch(query string) []Result {
 	queue := MusicQueue()
 	if len(queue) == 0 {
 		return []Result{{
-			Type:   TypeMusic,
-			Title:  "Music Queue Empty",
-			Desc:   "Search m song, choose Queue result",
-			Icon:   "audio-x-generic",
-			Action: func() {},
+			Type:  TypeMusic,
+			Title: "Music Queue Empty",
+			Desc:  "Search m song, choose Queue result",
+			Icon:  "audio-x-generic",
 		}}
 	}
 	results := []Result{
 		{
-			Type:  TypeMusic,
-			Title: "Play Queue",
-			Desc:  stringInt(len(queue)) + " tracks",
-			Icon:  "media-playback-start",
-			Action: func() {
-				playMusicQueue()
-			},
+			Type:       TypeMusic,
+			Title:      "Play Queue",
+			Desc:       stringInt(len(queue)) + " tracks",
+			Icon:       "media-playback-start",
+			ActionSpec: MusicAction("play"),
 		},
 		{
-			Type:  TypeMusic,
-			Title: "Play Queue with mpv",
-			Desc:  stringInt(len(queue)) + " tracks",
-			Icon:  "media-playback-start",
-			Action: func() {
-				playMusicQueueWith("mpv")
-			},
+			Type:       TypeMusic,
+			Title:      "Play Queue with mpv",
+			Desc:       stringInt(len(queue)) + " tracks",
+			Icon:       "media-playback-start",
+			ActionSpec: MusicAction("play-with", "mpv"),
 		},
 		{
-			Type:     TypeMusic,
-			Title:    "Clear Queue",
-			Desc:     stringInt(len(queue)) + " tracks",
-			Icon:     "edit-clear",
-			KeepOpen: true,
-			Action: func() {
-				ClearMusicQueue()
-			},
+			Type:       TypeMusic,
+			Title:      "Clear Queue",
+			Desc:       stringInt(len(queue)) + " tracks",
+			Icon:       "edit-clear",
+			KeepOpen:   true,
+			ActionSpec: StateAction("music-queue-clear"),
 		},
 	}
 	for _, path := range queue {
-		p := path
 		results = append(results, Result{
-			Type:  TypeMusic,
-			Title: filepath.Base(p),
-			Desc:  shortenPath(filepath.Dir(p)),
-			Icon:  "audio-x-generic",
-			Action: func() {
-				Open(p)
-			},
+			Type:       TypeMusic,
+			Title:      filepath.Base(path),
+			Desc:       shortenPath(filepath.Dir(path)),
+			Icon:       "audio-x-generic",
+			ActionSpec: OpenAction(path),
 		})
 	}
 	return results
@@ -163,11 +146,10 @@ func musicBrowseSearch(term string) []Result {
 	values := musicTagValues(mode)
 	if len(values) == 0 {
 		return []Result{{
-			Type:   TypeMusic,
-			Title:  "No " + mode + " tags found",
-			Desc:   "Requires ffprobe tags or filenames",
-			Icon:   "audio-x-generic",
-			Action: func() {},
+			Type:  TypeMusic,
+			Title: "No " + mode + " tags found",
+			Desc:  "Requires ffprobe tags or filenames",
+			Icon:  "audio-x-generic",
 		}}
 	}
 	results := make([]Result, 0, len(values))
@@ -180,7 +162,6 @@ func musicBrowseSearch(term string) []Result {
 			Icon:          "audio-x-generic",
 			NavigateQuery: "m " + mode + " " + v,
 			KeepOpen:      true,
-			Action:        func() {},
 		})
 	}
 	return results
@@ -191,9 +172,9 @@ func musicTagValues(tag string) []string {
 	paths := findAudioFiles(musicDir, "")
 	seen := make(map[string]bool)
 	var values []string
-	if _, err := exec.LookPath("ffprobe"); err == nil {
+	if _, err := commands.LookPath("ffprobe"); err == nil {
 		for _, path := range paths {
-			cmd := exec.Command("ffprobe", "-v", "quiet", "-show_entries", "format_tags="+tag, "-of", "default=noprint_wrappers=1:nokey=1", path)
+			cmd := commands.Command("ffprobe", "-v", "quiet", "-show_entries", "format_tags="+tag, "-of", "default=noprint_wrappers=1:nokey=1", path)
 			data, err := cmd.Output()
 			if err != nil {
 				continue
@@ -230,20 +211,20 @@ func musicTagValues(tag string) []string {
 }
 
 func findAudioFiles(dir, term string) []string {
-	var cmd *exec.Cmd
-	if _, err := exec.LookPath("fd"); err == nil {
+	var cmd *commands.Cmd
+	if _, err := commands.LookPath("fd"); err == nil {
 		args := []string{"--max-results", "200", "--type", "f", "--extension", "mp3", "--extension", "flac", "--extension", "ogg", "--extension", "wav", "--extension", "m4a"}
 		if term != "" {
 			args = append(args, term)
 		}
 		args = append(args, dir)
-		cmd = exec.Command("fd", args...)
+		cmd = commands.Command("fd", args...)
 	} else {
 		pattern := "*"
 		if term != "" {
 			pattern = "*" + term + "*"
 		}
-		cmd = exec.Command("find", dir, "-maxdepth", "5", "-type", "f", "-iname", pattern)
+		cmd = commands.Command("find", dir, "-maxdepth", "5", "-type", "f", "-iname", pattern)
 	}
 
 	done := make(chan []byte, 1)
@@ -285,13 +266,13 @@ func isAudioFile(path string) bool {
 }
 
 func filterMusicByTag(paths []string, tag, term string) []string {
-	if _, err := exec.LookPath("ffprobe"); err != nil {
+	if _, err := commands.LookPath("ffprobe"); err != nil {
 		return filterMusicByPath(paths, term)
 	}
 	var out []string
 	needle := strings.ToLower(term)
 	for _, path := range paths {
-		cmd := exec.Command("ffprobe", "-v", "quiet", "-show_entries", "format_tags="+tag, "-of", "default=noprint_wrappers=1:nokey=1", path)
+		cmd := commands.Command("ffprobe", "-v", "quiet", "-show_entries", "format_tags="+tag, "-of", "default=noprint_wrappers=1:nokey=1", path)
 		data, err := cmd.Output()
 		if err != nil {
 			continue
@@ -343,30 +324,4 @@ func AddMusicToQueue(path string) {
 func ClearMusicQueue() {
 	os.Remove(musicQueuePath())
 	SetStatus(true, "Music queue cleared")
-}
-
-func playMusicQueue() {
-	queue := MusicQueue()
-	if len(queue) == 0 {
-		return
-	}
-	if _, err := exec.LookPath("mpv"); err == nil {
-		Start("mpv", queue...)
-		return
-	}
-	for _, path := range queue {
-		Open(path)
-	}
-}
-
-func playMusicQueueWith(player string) {
-	queue := MusicQueue()
-	if len(queue) == 0 {
-		return
-	}
-	if _, err := exec.LookPath(player); err != nil {
-		SetStatus(false, player+" not installed")
-		return
-	}
-	Start(player, queue...)
 }

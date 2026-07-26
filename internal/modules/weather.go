@@ -2,9 +2,11 @@ package modules
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
-	"os/exec"
 	"strings"
+	"time"
 )
 
 func WeatherSearch(query string) []Result {
@@ -52,29 +54,11 @@ func weatherResult(query, desc string, copyOnEnter bool) []Result {
 	}
 
 	return []Result{{
-		Type:  TypeWeather,
-		Title: title,
-		Desc:  desc,
-		Icon:  "weather-clear",
-		Action: func() {
-			if copyOnEnter {
-				copyToClipboard(desc)
-				SetStatus(true, "Weather copied: "+desc)
-				return
-			}
-			text, err := currentWeather(page)
-			if err == nil && text != "" {
-				if Run("notify-send", "Weather", text) {
-					SetStatus(true, text)
-					return
-				}
-				copyToClipboard(text)
-				SetStatus(true, "Weather copied: "+text)
-				return
-			}
-			SetStatus(false, "Weather failed; opening browser")
-			Open(page)
-		},
+		Type:       TypeWeather,
+		Title:      title,
+		Desc:       desc,
+		Icon:       "weather-clear",
+		ActionSpec: WeatherAction(page, desc, copyOnEnter),
 	}}
 }
 
@@ -112,10 +96,16 @@ func titleCity(city string) string {
 }
 
 func currentWeather(page string) (string, error) {
-	if _, err := exec.LookPath("curl"); err != nil {
+	client := http.Client{Timeout: 8 * time.Second}
+	resp, err := client.Get(page + "?format=3")
+	if err != nil {
 		return "", err
 	}
-	out, err := exec.Command("curl", "-fsS", "--max-time", "8", page+"?format=3").Output()
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", fmt.Errorf("weather status %d", resp.StatusCode)
+	}
+	out, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}

@@ -73,7 +73,7 @@ func createSpotifyView() {
 		idx := row.Index()
 		ctrls := modules.PlayerControls(playerMode)
 		if idx >= 0 && idx < len(ctrls) {
-			runPlayerAction(ctrls[idx].Action)
+			runPlayerResultAction(ctrls[idx])
 		}
 	})
 
@@ -109,7 +109,7 @@ func buildPlayerControls() *gtk.Box {
 		btn.SetLabel(b.label)
 		idx := b.index
 		btn.Connect("clicked", func() {
-			runPlayerAction(modules.PlayerControls(playerMode)[idx].Action)
+			runPlayerResultAction(modules.PlayerControls(playerMode)[idx])
 		})
 		controls.PackStart(btn, false, false, 0)
 	}
@@ -225,9 +225,13 @@ func applyPlayerInfo(info *modules.PlayerInfo) {
 	}
 }
 
-func runPlayerAction(action func()) {
+func runPlayerResultAction(result modules.Result) {
 	go func() {
-		action()
+		if !result.ActionSpec.IsZero() {
+			executeActionSpec(result.ActionSpec)
+		} else if result.Action != nil {
+			result.Action()
+		}
 		time.Sleep(playerRefreshDelay)
 		glib.IdleAdd(func() { refreshSpotifyInfo() })
 	}()

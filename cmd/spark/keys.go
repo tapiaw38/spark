@@ -95,7 +95,9 @@ func executeSelected() {
 	if r.Confirm && !confirmAction(r) {
 		return
 	}
-	if r.Action != nil {
+	if !r.ActionSpec.IsZero() {
+		executeActionSpec(r.ActionSpec)
+	} else if r.Action != nil {
 		r.Action()
 	}
 	if !r.KeepOpen {
@@ -117,7 +119,7 @@ func executePlayerControl() {
 	if selected.Index() >= len(controls) {
 		return
 	}
-	runPlayerAction(controls[selected.Index()].Action)
+	runPlayerResultAction(controls[selected.Index()])
 }
 
 func confirmAction(r modules.Result) bool {

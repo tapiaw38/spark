@@ -19,24 +19,22 @@ func SSHSearch(query string) []Result {
 	hosts, err := sshHosts()
 	if err != nil {
 		return []Result{{
-			Type:   TypeSSH,
-			Title:  "No SSH config",
-			Desc:   "Create ~/.ssh/config with Host entries",
-			Icon:   "dialog-warning",
-			Action: func() {},
+			Type:  TypeSSH,
+			Title: "No SSH config",
+			Desc:  "Create ~/.ssh/config with Host entries",
+			Icon:  "dialog-warning",
 		}}
 	}
 	for _, host := range hosts {
 		if filter != "" && !strings.Contains(strings.ToLower(host), filter) {
 			continue
 		}
-		host := host
 		out = append(out, Result{
-			Type:   TypeSSH,
-			Title:  "SSH: " + host,
-			Desc:   "Connect in terminal",
-			Icon:   "utilities-terminal",
-			Action: func() { openTerminal("ssh " + shellQuote(host)) },
+			Type:       TypeSSH,
+			Title:      "SSH: " + host,
+			Desc:       "Connect in terminal",
+			Icon:       "utilities-terminal",
+			ActionSpec: TerminalAction("ssh " + shellQuote(host)),
 		})
 		if len(out) >= MaxCompactResults {
 			break
@@ -44,14 +42,17 @@ func SSHSearch(query string) []Result {
 	}
 	if len(out) == 0 {
 		return []Result{{
-			Type:   TypeSSH,
-			Title:  "No SSH host: " + filter,
-			Desc:   "Add Host " + filter + " to ~/.ssh/config",
-			Icon:   "dialog-warning",
-			Action: func() {},
+			Type:  TypeSSH,
+			Title: "No SSH host: " + filter,
+			Desc:  "Add Host " + filter + " to ~/.ssh/config",
+			Icon:  "dialog-warning",
 		}}
 	}
 	return out
+}
+
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
 
 func sshHosts() ([]string, error) {

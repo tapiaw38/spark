@@ -73,5 +73,123 @@ type Result struct {
 	KeepOpen        bool
 	Confirm         bool
 	NavigateQuery   string
+	ActionSpec      ActionSpec
 	Action          func()
+}
+
+type ActionKind string
+
+const (
+	ActionNone  ActionKind = ""
+	ActionOpen  ActionKind = "open"
+	ActionCopy  ActionKind = "copy"
+	ActionStart ActionKind = "start"
+	ActionRun   ActionKind = "run"
+	ActionTerm  ActionKind = "terminal"
+	ActionEmail ActionKind = "email"
+	ActionMailW ActionKind = "email-window"
+	ActionFile  ActionKind = "file"
+	ActionClip  ActionKind = "clipboard"
+	ActionShot  ActionKind = "screenshot"
+	ActionMusic ActionKind = "music"
+	ActionPaste ActionKind = "paste"
+	ActionWeath ActionKind = "weather"
+	ActionPlayr ActionKind = "player"
+	ActionState ActionKind = "state"
+	ActionSync  ActionKind = "sync"
+	ActionSys   ActionKind = "system"
+	ActionApp   ActionKind = "app-launch"
+)
+
+type ActionSpec struct {
+	Kind          ActionKind
+	Target        string
+	Args          []string
+	SuccessStatus string
+}
+
+func OpenAction(path string) ActionSpec {
+	return ActionSpec{Kind: ActionOpen, Target: path}
+}
+
+func CopyAction(text string) ActionSpec {
+	return ActionSpec{Kind: ActionCopy, Target: text}
+}
+
+func StartAction(name string, args ...string) ActionSpec {
+	return ActionSpec{Kind: ActionStart, Target: name, Args: args}
+}
+
+func RunAction(name string, args ...string) ActionSpec {
+	return ActionSpec{Kind: ActionRun, Target: name, Args: args}
+}
+
+func TerminalAction(command string) ActionSpec {
+	return ActionSpec{Kind: ActionTerm, Target: command}
+}
+
+func EmailAction(to, subject, body string, attachments ...string) ActionSpec {
+	args := append([]string{subject, body}, attachments...)
+	return ActionSpec{Kind: ActionEmail, Target: to, Args: args}
+}
+
+func EmailWindowAction(to, subject, body string) ActionSpec {
+	return ActionSpec{Kind: ActionMailW, Target: to, Args: []string{subject, body}}
+}
+
+func FileAction(op string, args ...string) ActionSpec {
+	return ActionSpec{Kind: ActionFile, Target: op, Args: args}
+}
+
+func ClipboardHistoryAction(id string, paste bool) ActionSpec {
+	args := []string{}
+	if paste {
+		args = []string{"paste"}
+	}
+	return ActionSpec{Kind: ActionClip, Target: id, Args: args}
+}
+
+func ScreenshotAction(mode string) ActionSpec {
+	return ActionSpec{Kind: ActionShot, Target: mode}
+}
+
+func MusicAction(mode string, args ...string) ActionSpec {
+	return ActionSpec{Kind: ActionMusic, Target: mode, Args: args}
+}
+
+func PasteAction(text string) ActionSpec {
+	return ActionSpec{Kind: ActionPaste, Target: text}
+}
+
+func WeatherAction(page, desc string, copyOnEnter bool) ActionSpec {
+	args := []string{desc}
+	if copyOnEnter {
+		args = append(args, "copy")
+	}
+	return ActionSpec{Kind: ActionWeath, Target: page, Args: args}
+}
+
+func StateAction(op string, args ...string) ActionSpec {
+	return ActionSpec{Kind: ActionState, Target: op, Args: args}
+}
+
+func SyncAction(op string, args ...string) ActionSpec {
+	return ActionSpec{Kind: ActionSync, Target: op, Args: args}
+}
+
+func SystemAction(op string) ActionSpec {
+	return ActionSpec{Kind: ActionSys, Target: op}
+}
+
+func AppAction(name, exec, icon string) ActionSpec {
+	return ActionSpec{Kind: ActionApp, Target: name, Args: []string{exec, icon}}
+}
+
+func (a ActionSpec) WithStatus(status string) ActionSpec {
+	a.SuccessStatus = status
+	return a
+}
+
+func (a ActionSpec) IsZero() bool {
+	return a.Kind == ActionNone
 }

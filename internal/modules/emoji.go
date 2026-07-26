@@ -77,14 +77,13 @@ func EmojiSearch(query string) []Result {
 		if term != "" && !strings.Contains(e.keywords, term) {
 			continue
 		}
-		e := e
 		out = append(out, Result{
-			Type:     TypeEmoji,
-			Title:    firstWord(e.keywords),
-			Desc:     "Copy emoji",
-			IconText: e.char,
-			KeepOpen: false,
-			Action:   func() { copyToClipboard(e.char) },
+			Type:       TypeEmoji,
+			Title:      firstWord(e.keywords),
+			Desc:       "Copy emoji",
+			IconText:   e.char,
+			KeepOpen:   false,
+			ActionSpec: CopyAction(e.char),
 		})
 		if len(out) >= MaxCompactResults {
 			break
