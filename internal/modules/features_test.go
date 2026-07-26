@@ -78,7 +78,7 @@ func TestKillSearchListsWithoutFilter(t *testing.T) {
 	if len(r) == 0 {
 		t.Fatal("kill should list processes without filter")
 	}
-	if r[0].NavigateQuery == "" || r[0].Action != nil {
+	if r[0].NavigateQuery == "" || !r[0].ActionSpec.IsZero() {
 		t.Fatalf("kill list row should navigate to confirmation: %+v", r[0])
 	}
 	if r := KillSearch("killer"); r != nil {

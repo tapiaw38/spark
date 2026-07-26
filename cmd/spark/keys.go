@@ -95,11 +95,7 @@ func executeSelected() {
 	if r.Confirm && !confirmAction(r) {
 		return
 	}
-	if !r.ActionSpec.IsZero() {
-		executeActionSpec(r.ActionSpec)
-	} else if r.Action != nil {
-		r.Action()
-	}
+	executeActionSpec(r.ActionSpec)
 	if !r.KeepOpen {
 		gtk.MainQuit()
 		return

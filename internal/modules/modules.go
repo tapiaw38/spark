@@ -74,32 +74,40 @@ type Result struct {
 	Confirm         bool
 	NavigateQuery   string
 	ActionSpec      ActionSpec
-	Action          func()
 }
 
 type ActionKind string
 
 const (
-	ActionNone  ActionKind = ""
-	ActionOpen  ActionKind = "open"
-	ActionCopy  ActionKind = "copy"
-	ActionStart ActionKind = "start"
-	ActionRun   ActionKind = "run"
-	ActionTerm  ActionKind = "terminal"
-	ActionEmail ActionKind = "email"
-	ActionMailW ActionKind = "email-window"
-	ActionFile  ActionKind = "file"
-	ActionClip  ActionKind = "clipboard"
-	ActionShot  ActionKind = "screenshot"
-	ActionMusic ActionKind = "music"
-	ActionPaste ActionKind = "paste"
-	ActionWeath ActionKind = "weather"
-	ActionPlayr ActionKind = "player"
-	ActionState ActionKind = "state"
-	ActionSync  ActionKind = "sync"
-	ActionSys   ActionKind = "system"
-	ActionApp   ActionKind = "app-launch"
+	ActionNone        ActionKind = ""
+	ActionOpen        ActionKind = "open"
+	ActionCopy        ActionKind = "copy"
+	ActionStart       ActionKind = "start"
+	ActionRun         ActionKind = "run"
+	ActionTerminal    ActionKind = "terminal"
+	ActionEmail       ActionKind = "email"
+	ActionEmailWindow ActionKind = "email-window"
+	ActionFile        ActionKind = "file"
+	ActionClipboard   ActionKind = "clipboard"
+	ActionScreenshot  ActionKind = "screenshot"
+	ActionMusic       ActionKind = "music"
+	ActionPaste       ActionKind = "paste"
+	ActionWeather     ActionKind = "weather"
+	ActionPlayer      ActionKind = "player"
+	ActionState       ActionKind = "state"
+	ActionSync        ActionKind = "sync"
+	ActionSystem      ActionKind = "system"
+	ActionApp         ActionKind = "app-launch"
 )
+
+func AllActionKinds() []ActionKind {
+	return []ActionKind{
+		ActionOpen, ActionCopy, ActionStart, ActionRun, ActionTerminal,
+		ActionEmail, ActionEmailWindow, ActionFile, ActionClipboard,
+		ActionScreenshot, ActionMusic, ActionPaste, ActionWeather,
+		ActionPlayer, ActionState, ActionSync, ActionSystem, ActionApp,
+	}
+}
 
 type ActionSpec struct {
 	Kind          ActionKind
@@ -110,6 +118,13 @@ type ActionSpec struct {
 
 func OpenAction(path string) ActionSpec {
 	return ActionSpec{Kind: ActionOpen, Target: path}
+}
+
+func OpenPathsAction(paths ...string) ActionSpec {
+	if len(paths) == 0 {
+		return ActionSpec{}
+	}
+	return ActionSpec{Kind: ActionOpen, Target: paths[0], Args: paths[1:]}
 }
 
 func CopyAction(text string) ActionSpec {
@@ -125,7 +140,7 @@ func RunAction(name string, args ...string) ActionSpec {
 }
 
 func TerminalAction(command string) ActionSpec {
-	return ActionSpec{Kind: ActionTerm, Target: command}
+	return ActionSpec{Kind: ActionTerminal, Target: command}
 }
 
 func EmailAction(to, subject, body string, attachments ...string) ActionSpec {
@@ -134,7 +149,7 @@ func EmailAction(to, subject, body string, attachments ...string) ActionSpec {
 }
 
 func EmailWindowAction(to, subject, body string) ActionSpec {
-	return ActionSpec{Kind: ActionMailW, Target: to, Args: []string{subject, body}}
+	return ActionSpec{Kind: ActionEmailWindow, Target: to, Args: []string{subject, body}}
 }
 
 func FileAction(op string, args ...string) ActionSpec {
@@ -146,11 +161,11 @@ func ClipboardHistoryAction(id string, paste bool) ActionSpec {
 	if paste {
 		args = []string{"paste"}
 	}
-	return ActionSpec{Kind: ActionClip, Target: id, Args: args}
+	return ActionSpec{Kind: ActionClipboard, Target: id, Args: args}
 }
 
 func ScreenshotAction(mode string) ActionSpec {
-	return ActionSpec{Kind: ActionShot, Target: mode}
+	return ActionSpec{Kind: ActionScreenshot, Target: mode}
 }
 
 func MusicAction(mode string, args ...string) ActionSpec {
@@ -166,7 +181,7 @@ func WeatherAction(page, desc string, copyOnEnter bool) ActionSpec {
 	if copyOnEnter {
 		args = append(args, "copy")
 	}
-	return ActionSpec{Kind: ActionWeath, Target: page, Args: args}
+	return ActionSpec{Kind: ActionWeather, Target: page, Args: args}
 }
 
 func StateAction(op string, args ...string) ActionSpec {
@@ -178,7 +193,7 @@ func SyncAction(op string, args ...string) ActionSpec {
 }
 
 func SystemAction(op string) ActionSpec {
-	return ActionSpec{Kind: ActionSys, Target: op}
+	return ActionSpec{Kind: ActionSystem, Target: op}
 }
 
 func AppAction(name, exec, icon string) ActionSpec {

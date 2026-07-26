@@ -264,7 +264,7 @@ func playerctlMedia(player string, args ...string) *commands.Cmd {
 }
 
 func PlayerAction(kind PlayerKind, args ...string) ActionSpec {
-	return ActionSpec{Kind: ActionPlayr, Target: string(kind), Args: args}
+	return ActionSpec{Kind: ActionPlayer, Target: string(kind), Args: args}
 }
 
 func PlayerControls(kind PlayerKind) []Result {

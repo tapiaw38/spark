@@ -112,7 +112,7 @@ func FileBufferSearch(query string) []Result {
 			Title:      "Open Buffered Files",
 			Desc:       bufferSummary(len(paths)),
 			Icon:       "document-open",
-			ActionSpec: MusicAction("open-files", paths...),
+			ActionSpec: OpenPathsAction(paths...),
 		},
 		{
 			Type:       TypeFileBufferAction,

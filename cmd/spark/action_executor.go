@@ -31,53 +31,55 @@ var clipboardWriters = [][]string{
 	{"xsel", "--clipboard", "--input"},
 }
 
+var actionHandlers = map[modules.ActionKind]func(modules.ActionSpec) bool{
+	modules.ActionOpen: func(a modules.ActionSpec) bool {
+		return openPaths(append([]string{a.Target}, a.Args...))
+	},
+	modules.ActionCopy:  func(a modules.ActionSpec) bool { return copyToClipboard(a.Target) },
+	modules.ActionStart: func(a modules.ActionSpec) bool { return startCommand(a.Target, a.Args...) },
+	modules.ActionRun:   func(a modules.ActionSpec) bool { return runCommand(a.Target, a.Args...) },
+
+	modules.ActionTerminal:    func(a modules.ActionSpec) bool { return openTerminal(a.Target) },
+	modules.ActionPaste:       func(a modules.ActionSpec) bool { return pasteText(a.Target) },
+	modules.ActionEmail:       executeEmailAction,
+	modules.ActionEmailWindow: executeEmailWindowAction,
+	modules.ActionFile:        executeFileAction,
+	modules.ActionClipboard:   executeClipboardHistoryAction,
+	modules.ActionScreenshot:  executeScreenshotAction,
+	modules.ActionMusic:       executeMusicAction,
+	modules.ActionWeather:     executeWeatherAction,
+	modules.ActionPlayer:      executePlayerAction,
+	modules.ActionState:       executeStateAction,
+	modules.ActionSync:        executeSyncAction,
+	modules.ActionSystem:      executeSystemAction,
+	modules.ActionApp:         executeAppAction,
+}
+
 func executeActionSpec(action modules.ActionSpec) bool {
-	ok := false
-	switch action.Kind {
-	case modules.ActionNone:
+	if action.IsZero() {
 		return false
-	case modules.ActionOpen:
-		ok = startCommand("xdg-open", action.Target)
-	case modules.ActionCopy:
-		ok = copyToClipboard(action.Target)
-	case modules.ActionStart:
-		ok = startCommand(action.Target, action.Args...)
-	case modules.ActionRun:
-		ok = runCommand(action.Target, action.Args...)
-	case modules.ActionTerm:
-		ok = openTerminal(action.Target)
-	case modules.ActionEmail:
-		ok = executeEmailAction(action)
-	case modules.ActionMailW:
-		ok = executeEmailWindowAction(action)
-	case modules.ActionFile:
-		ok = executeFileAction(action)
-	case modules.ActionClip:
-		ok = executeClipboardHistoryAction(action)
-	case modules.ActionShot:
-		ok = executeScreenshotAction(action)
-	case modules.ActionMusic:
-		ok = executeMusicAction(action)
-	case modules.ActionPaste:
-		ok = pasteText(action.Target)
-	case modules.ActionWeath:
-		ok = executeWeatherAction(action)
-	case modules.ActionPlayr:
-		ok = executePlayerAction(action)
-	case modules.ActionState:
-		ok = executeStateAction(action)
-	case modules.ActionSync:
-		ok = executeSyncAction(action)
-	case modules.ActionSys:
-		ok = executeSystemAction(action)
-	case modules.ActionApp:
-		ok = executeAppAction(action)
-	default:
+	}
+	handler, known := actionHandlers[action.Kind]
+	if !known {
 		modules.SetStatus(false, "Unknown action: "+string(action.Kind))
 		return false
 	}
+	ok := handler(action)
 	if ok && action.SuccessStatus != "" {
 		modules.SetStatus(true, action.SuccessStatus)
+	}
+	return ok
+}
+
+func openPaths(paths []string) bool {
+	ok := true
+	for _, path := range paths {
+		if path == "" {
+			continue
+		}
+		if !startCommand("xdg-open", path) {
+			ok = false
+		}
 	}
 	return ok
 }
@@ -114,7 +116,7 @@ func openTerminal(command string) bool {
 		return startCommand(term, execFlag, "sh", "-c", command)
 	}
 	modules.SetStatus(false, "No terminal found: install one of "+strings.Join(terminals, ", "))
-	return true
+	return false
 }
 
 func copyToClipboard(text string) bool {
@@ -125,7 +127,7 @@ func copyToClipboard(text string) bool {
 		}
 	}
 	modules.SetStatus(false, "Clipboard copy failed: install wl-clipboard, xclip, or xsel")
-	return true
+	return false
 }
 
 func writeClipboard(name string, args []string, text string) bool {
@@ -330,7 +332,8 @@ func shellQuote(s string) string {
 func executeMusicAction(action modules.ActionSpec) bool {
 	queue := modules.MusicQueue()
 	if len(queue) == 0 {
-		return true
+		modules.SetStatus(false, "Music queue is empty")
+		return false
 	}
 	switch action.Target {
 	case "play":
@@ -354,14 +357,6 @@ func executeMusicAction(action modules.ActionSpec) bool {
 			return false
 		}
 		return startCommand(player, queue...)
-	case "open-files":
-		ok := true
-		for _, path := range action.Args {
-			if !startCommand("xdg-open", path) {
-				ok = false
-			}
-		}
-		return ok
 	}
 	return false
 }

@@ -227,11 +227,7 @@ func applyPlayerInfo(info *modules.PlayerInfo) {
 
 func runPlayerResultAction(result modules.Result) {
 	go func() {
-		if !result.ActionSpec.IsZero() {
-			executeActionSpec(result.ActionSpec)
-		} else if result.Action != nil {
-			result.Action()
-		}
+		executeActionSpec(result.ActionSpec)
 		time.Sleep(playerRefreshDelay)
 		glib.IdleAdd(func() { refreshSpotifyInfo() })
 	}()
