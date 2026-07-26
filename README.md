@@ -15,6 +15,20 @@ App launcher for Linux (Wayland/MangoWM).
 go build -buildvcs=false -o spark ./cmd/spark/
 ```
 
+## Development
+
+Format:
+
+```bash
+gofmt -w $(find . -name '*.go' -not -path './vendor/*')
+```
+
+Test:
+
+```bash
+go test ./...
+```
+
 ## Run
 
 ```bash
@@ -244,3 +258,7 @@ Test playerctl:
 playerctl metadata
 playerctl status
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).
