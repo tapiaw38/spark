@@ -34,6 +34,62 @@ func ParsePlaybackStatus(raw string) PlaybackStatus {
 	}
 }
 
+type PlayerKind string
+
+const (
+	PlayerSpotify PlayerKind = "spotify"
+	PlayerYouTube PlayerKind = "youtube"
+)
+
+func (k PlayerKind) Action(args ...string) ActionSpec {
+	return ActionSpec{Kind: ActionPlayer, Target: string(k), Args: args}
+}
+
+func (k PlayerKind) Controls() []Result {
+	label := "Spotify"
+	if k == PlayerYouTube {
+		label = "YouTube"
+	}
+	return []Result{
+		{Type: TypeMediaControl, Title: "Play/Pause", Desc: label, Icon: "media-playback-start", ActionSpec: k.Action("play-pause")},
+		{Type: TypeMediaControl, Title: "Next", Desc: label, Icon: "media-skip-forward", ActionSpec: k.Action("next")},
+		{Type: TypeMediaControl, Title: "Previous", Desc: label, Icon: "media-skip-backward", ActionSpec: k.Action("previous")},
+		{Type: TypeMediaControl, Title: "Volume Up", Desc: "+10%", Icon: "audio-volume-high", ActionSpec: k.Action("volume", "0.1+")},
+		{Type: TypeMediaControl, Title: "Volume Down", Desc: "-10%", Icon: "audio-volume-low", ActionSpec: k.Action("volume", "0.1-")},
+	}
+}
+
+func MediaPlayer(kind PlayerKind) string {
+	players := playerMetas()
+	var fallback string
+	for _, meta := range players {
+		lower := strings.ToLower(meta.name)
+		switch kind {
+		case PlayerSpotify:
+			if strings.Contains(lower, "spotify") {
+				return meta.name
+			}
+		case PlayerYouTube:
+			if isYouTubeMeta(meta) {
+				return meta.name
+			}
+			if strings.Contains(lower, "youtube") {
+				return meta.name
+			}
+			if isBrowserPlayer(meta.name) {
+				if video := browserCurrentYouTubeVideo(meta.name); video.URL != "" {
+					return meta.name
+				}
+			}
+			if fallback == "" && meta.status == StatusPlaying &&
+				isBrowserPlayer(meta.name) {
+				fallback = meta.name
+			}
+		}
+	}
+	return fallback
+}
+
 type PlayerInfo struct {
 	Title        string
 	Artist       string
@@ -51,15 +107,8 @@ type playerMeta struct {
 	status PlaybackStatus
 }
 
-type PlayerKind string
-
-const (
-	PlayerSpotify PlayerKind = "spotify"
-	PlayerYouTube PlayerKind = "youtube"
-)
-
 func GetPlayerInfo(kind PlayerKind) *PlayerInfo {
-	player := mediaPlayer(kind)
+	player := MediaPlayer(kind)
 	if player == "" {
 		return nil
 	}
@@ -112,41 +161,6 @@ func GetPlayerInfo(kind PlayerKind) *PlayerInfo {
 	}
 
 	return info
-}
-
-func mediaPlayer(kind PlayerKind) string {
-	players := playerMetas()
-	var fallback string
-	for _, meta := range players {
-		lower := strings.ToLower(meta.name)
-		switch kind {
-		case PlayerSpotify:
-			if strings.Contains(lower, "spotify") {
-				return meta.name
-			}
-		case PlayerYouTube:
-			if isYouTubeMeta(meta) {
-				return meta.name
-			}
-			if strings.Contains(lower, "youtube") {
-				return meta.name
-			}
-			if isBrowserPlayer(meta.name) {
-				if video := browserCurrentYouTubeVideo(meta.name); video.URL != "" {
-					return meta.name
-				}
-			}
-			if fallback == "" && meta.status == StatusPlaying &&
-				isBrowserPlayer(meta.name) {
-				fallback = meta.name
-			}
-		}
-	}
-	return fallback
-}
-
-func MediaPlayer(kind PlayerKind) string {
-	return mediaPlayer(kind)
 }
 
 func playerMetas() []playerMeta {
@@ -264,24 +278,6 @@ func playerctlMedia(player string, args ...string) *commands.Cmd {
 	return commands.Command("playerctl", all...)
 }
 
-func PlayerAction(kind PlayerKind, args ...string) ActionSpec {
-	return ActionSpec{Kind: ActionPlayer, Target: string(kind), Args: args}
-}
-
-func PlayerControls(kind PlayerKind) []Result {
-	label := "Spotify"
-	if kind == PlayerYouTube {
-		label = "YouTube"
-	}
-	return []Result{
-		{Type: TypeMediaControl, Title: "Play/Pause", Desc: label, Icon: "media-playback-start", ActionSpec: PlayerAction(kind, "play-pause")},
-		{Type: TypeMediaControl, Title: "Next", Desc: label, Icon: "media-skip-forward", ActionSpec: PlayerAction(kind, "next")},
-		{Type: TypeMediaControl, Title: "Previous", Desc: label, Icon: "media-skip-backward", ActionSpec: PlayerAction(kind, "previous")},
-		{Type: TypeMediaControl, Title: "Volume Up", Desc: "+10%", Icon: "audio-volume-high", ActionSpec: PlayerAction(kind, "volume", "0.1+")},
-		{Type: TypeMediaControl, Title: "Volume Down", Desc: "-10%", Icon: "audio-volume-low", ActionSpec: PlayerAction(kind, "volume", "0.1-")},
-	}
-}
-
 func playerForQuickControls(q string) (PlayerKind, string, bool) {
 	switch {
 	case strings.HasPrefix(q, "yp "):
@@ -301,11 +297,11 @@ func YouTubePlayerControls(query string) []Result {
 	_, action, _ := playerForQuickControls(q)
 	switch action {
 	case "play", "pause":
-		return []Result{{Type: TypeYouTubePlayer, Title: "YouTube Play/Pause", Icon: "media-playback-start", ActionSpec: PlayerAction(PlayerYouTube, "play-pause")}}
+		return []Result{{Type: TypeYouTubePlayer, Title: "YouTube Play/Pause", Icon: "media-playback-start", ActionSpec: PlayerYouTube.Action("play-pause")}}
 	case "next":
-		return []Result{{Type: TypeYouTubePlayer, Title: "YouTube Next", Icon: "media-skip-forward", ActionSpec: PlayerAction(PlayerYouTube, "next")}}
+		return []Result{{Type: TypeYouTubePlayer, Title: "YouTube Next", Icon: "media-skip-forward", ActionSpec: PlayerYouTube.Action("next")}}
 	case "prev", "previous":
-		return []Result{{Type: TypeYouTubePlayer, Title: "YouTube Previous", Icon: "media-skip-backward", ActionSpec: PlayerAction(PlayerYouTube, "previous")}}
+		return []Result{{Type: TypeYouTubePlayer, Title: "YouTube Previous", Icon: "media-skip-backward", ActionSpec: PlayerYouTube.Action("previous")}}
 	default:
 		return nil
 	}
@@ -325,7 +321,7 @@ func YouTubePlayerStatus(query string) []Result {
 		}}
 	}
 	var results []Result
-	selected := mediaPlayer(PlayerYouTube)
+	selected := MediaPlayer(PlayerYouTube)
 	for _, meta := range metas {
 		m := meta
 		title := m.name
@@ -445,6 +441,6 @@ func SpotifySearch(query string) []Result {
 		Type:       TypeSpotify,
 		Title:      cmd.title,
 		Icon:       cmd.icon,
-		ActionSpec: PlayerAction(PlayerSpotify, cmd.arg),
+		ActionSpec: PlayerSpotify.Action(cmd.arg),
 	}}
 }

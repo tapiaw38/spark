@@ -12,6 +12,16 @@ import (
 	"github.com/tapiaw38/spark/internal/config"
 )
 
+func (r Result) FilePath() string {
+	if r.Type != TypeFile && r.Type != TypeDirectory {
+		return ""
+	}
+	if r.Type == TypeDirectory && strings.HasPrefix(r.NavigateQuery, "nav ") {
+		return expandHome(strings.TrimSpace(strings.TrimPrefix(r.NavigateQuery, "nav ")))
+	}
+	return filepath.Join(expandHome(r.Desc), r.Title)
+}
+
 func GetPreview(r Result) string {
 	if r.Preview != "" {
 		return r.Preview
@@ -42,30 +52,20 @@ func GetPreviewImageAt(r Result, page, scale int) string {
 		return expandHome(r.PreviewImage)
 	}
 
-	if !isImageFile(r.Title) {
+	if !IsImageFile(r.Title) {
 		ext := strings.ToLower(filepath.Ext(r.Title))
 		if ext == ".pdf" {
-			return previewPDFImageAt(GetFilePath(r), page, scale)
+			return previewPDFImageAt(r.FilePath(), page, scale)
 		}
 		if ext == ".docx" || ext == ".odt" {
-			if pdf := previewOfficePDF(GetFilePath(r)); pdf != "" {
+			if pdf := previewOfficePDF(r.FilePath()); pdf != "" {
 				return previewPDFImageAt(pdf, page, scale)
 			}
 		}
 		return ""
 	}
 
-	return GetFilePath(r)
-}
-
-func GetFilePath(r Result) string {
-	if r.Type != TypeFile && r.Type != TypeDirectory {
-		return ""
-	}
-	if r.Type == TypeDirectory && strings.HasPrefix(r.NavigateQuery, "nav ") {
-		return expandHome(strings.TrimSpace(strings.TrimPrefix(r.NavigateQuery, "nav ")))
-	}
-	return filepath.Join(expandHome(r.Desc), r.Title)
+	return r.FilePath()
 }
 
 func previewFile(name, dir string) string {
@@ -147,10 +147,6 @@ func expandHome(path string) string {
 }
 
 func IsImageFile(name string) bool {
-	return isImageFile(name)
-}
-
-func isImageFile(name string) bool {
 	switch strings.ToLower(filepath.Ext(name)) {
 	case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg":
 		return true

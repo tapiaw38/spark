@@ -10,7 +10,7 @@ import (
 
 func loadCSS() {
 	css := gtk.NewCSSProvider()
-	css.LoadFromData(config.GetCSS() + fmt.Sprintf(`
+	css.LoadFromData(config.Current.CSS() + fmt.Sprintf(`
 		#spark-preview {
 			background: @spark-black-30;
 			padding: %[2]dpx;

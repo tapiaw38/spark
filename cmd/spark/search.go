@@ -160,7 +160,7 @@ func showSelectedFileActions() {
 	if idx < 0 || idx >= len(currentResults) {
 		return
 	}
-	path := modules.GetFilePath(currentResults[idx])
+	path := currentResults[idx].FilePath()
 	if path == "" {
 		return
 	}

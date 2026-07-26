@@ -63,7 +63,7 @@ func createSpotifyView() {
 	spotifyList.SetName("spotify-list")
 	spotifyList.SetSelectionMode(gtk.SelectionSingle)
 
-	for _, ctrl := range modules.PlayerControls(playerMode) {
+	for _, ctrl := range playerMode.Controls() {
 		row := createSpotifyControlRow(ctrl)
 		spotifyList.Add(row)
 		row.ShowAll()
@@ -71,7 +71,7 @@ func createSpotifyView() {
 
 	spotifyList.Connect("row-activated", func(_ *gtk.ListBox, row *gtk.ListBoxRow) {
 		idx := row.Index()
-		ctrls := modules.PlayerControls(playerMode)
+		ctrls := playerMode.Controls()
 		if idx >= 0 && idx < len(ctrls) {
 			runPlayerResultAction(ctrls[idx])
 		}
@@ -109,7 +109,7 @@ func buildPlayerControls() *gtk.Box {
 		btn.SetLabel(b.label)
 		idx := b.index
 		btn.Connect("clicked", func() {
-			runPlayerResultAction(modules.PlayerControls(playerMode)[idx])
+			runPlayerResultAction(playerMode.Controls()[idx])
 		})
 		controls.PackStart(btn, false, false, 0)
 	}
@@ -178,7 +178,7 @@ func refreshPlayerControls() {
 		}
 		spotifyList.Remove(row)
 	}
-	for _, ctrl := range modules.PlayerControls(playerMode) {
+	for _, ctrl := range playerMode.Controls() {
 		row := createSpotifyControlRow(ctrl)
 		spotifyList.Add(row)
 		row.ShowAll()

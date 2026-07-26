@@ -35,6 +35,62 @@ type WebShortcut struct {
 	Icon string `yaml:"icon"`
 }
 
+func (c Config) CSS() string {
+	return StaticThemeCSS + fmt.Sprintf(`
+		@define-color spark-bg rgba(%s, %.2f);
+		@define-color spark-text %s;
+		@define-color spark-selection rgba(%s, 0.3);
+
+		window {
+			background: @spark-bg;
+			border-radius: %dpx;
+		}
+		#spark-entry {
+			font-size: %dpx;
+			padding: %dpx;
+			background: @spark-white-10;
+			border: none;
+			border-radius: %dpx;
+			color: @spark-text;
+		}
+		#spark-results {
+			background: transparent;
+		}
+		#spark-row {
+			background: transparent;
+			color: @spark-text;
+			border-radius: %dpx;
+			padding: %dpx %dpx;
+			outline: none;
+			box-shadow: none;
+		}
+		#spark-row:hover,
+		#spark-row:focus,
+		#spark-row:active {
+			background: transparent;
+			outline: none;
+			box-shadow: none;
+		}
+		#spark-row:selected,
+		#spark-row:selected:hover,
+		#spark-row:selected:focus {
+			background: @spark-selection;
+			outline: none;
+			box-shadow: none;
+		}
+		#spark-title {
+			color: @spark-text;
+			font-size: %dpx;
+		}
+		#spark-desc {
+			color: @spark-white-60;
+			font-size: %dpx;
+		}
+	`, c.BackgroundColor, c.BackgroundAlpha, c.TextColor, c.SelectionColor,
+		c.BorderRadius, c.FontSize, SpacingLarge, RadiusMedium,
+		RadiusSmall, SpacingTiny, SpacingMedium, FontSizeTitle, FontSizeSmall)
+}
+
 var defaultConfig = Config{
 	Width:           600,
 	MaxResults:      6,
@@ -160,61 +216,4 @@ func containsSparkBind(line string) bool {
 		}
 	}
 	return false
-}
-
-func GetCSS() string {
-	c := Current
-	return StaticThemeCSS + fmt.Sprintf(`
-		@define-color spark-bg rgba(%s, %.2f);
-		@define-color spark-text %s;
-		@define-color spark-selection rgba(%s, 0.3);
-
-		window {
-			background: @spark-bg;
-			border-radius: %dpx;
-		}
-		#spark-entry {
-			font-size: %dpx;
-			padding: %dpx;
-			background: @spark-white-10;
-			border: none;
-			border-radius: %dpx;
-			color: @spark-text;
-		}
-		#spark-results {
-			background: transparent;
-		}
-		#spark-row {
-			background: transparent;
-			color: @spark-text;
-			border-radius: %dpx;
-			padding: %dpx %dpx;
-			outline: none;
-			box-shadow: none;
-		}
-		#spark-row:hover,
-		#spark-row:focus,
-		#spark-row:active {
-			background: transparent;
-			outline: none;
-			box-shadow: none;
-		}
-		#spark-row:selected,
-		#spark-row:selected:hover,
-		#spark-row:selected:focus {
-			background: @spark-selection;
-			outline: none;
-			box-shadow: none;
-		}
-		#spark-title {
-			color: @spark-text;
-			font-size: %dpx;
-		}
-		#spark-desc {
-			color: @spark-white-60;
-			font-size: %dpx;
-		}
-	`, c.BackgroundColor, c.BackgroundAlpha, c.TextColor, c.SelectionColor,
-		c.BorderRadius, c.FontSize, SpacingLarge, RadiusMedium,
-		RadiusSmall, SpacingTiny, SpacingMedium, FontSizeTitle, FontSizeSmall)
 }

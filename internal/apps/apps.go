@@ -2,6 +2,7 @@ package apps
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,13 +12,32 @@ import (
 	"github.com/tapiaw38/spark/internal/platform/commands"
 )
 
+const (
+	quickSearchResultLimit = 6
+
+	fuzzyScoreCharMatch       = 1
+	fuzzyScoreStartOfString   = 5
+	fuzzyScoreAfterSeparator  = 3
+	fuzzyScoreConsecutiveStep = 2
+)
+
 type App struct {
 	Name string
 	Exec string
 	Icon string
 }
 
-const quickSearchResultLimit = 6
+func (a App) Launch() error {
+	parts := strings.Fields(a.Exec)
+	if len(parts) == 0 {
+		return fmt.Errorf("app %q has no executable command", a.Name)
+	}
+	cmd := commands.Command(parts[0], parts[1:]...)
+	cmd.Stdin = nil
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	return cmd.Start()
+}
 
 func Load() []App {
 	var apps []App
@@ -185,13 +205,6 @@ func Search(apps []App, query string) []App {
 	return toApps(results)
 }
 
-const (
-	fuzzyScoreCharMatch       = 1
-	fuzzyScoreStartOfString   = 5
-	fuzzyScoreAfterSeparator  = 3
-	fuzzyScoreConsecutiveStep = 2
-)
-
 func isWordSeparator(b byte) bool {
 	return b == ' ' || b == '-' || b == '_'
 }
@@ -234,13 +247,4 @@ func fuzzyScore(name, query string) int {
 		return 0
 	}
 	return score
-}
-
-func Launch(app App) error {
-	parts := strings.Fields(app.Exec)
-	cmd := commands.Command(parts[0], parts[1:]...)
-	cmd.Stdin = nil
-	cmd.Stdout = nil
-	cmd.Stderr = nil
-	return cmd.Start()
 }

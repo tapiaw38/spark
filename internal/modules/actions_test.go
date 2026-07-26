@@ -104,3 +104,33 @@ func TestOpenBufferedFilesDoesNotDependOnTheMusicQueue(t *testing.T) {
 		t.Fatalf("carried %d paths, want 2: %v", len(paths), paths)
 	}
 }
+
+func TestPlayerKindActionCarriesTheKind(t *testing.T) {
+	action := PlayerYouTube.Action("play-pause")
+	if action.Kind != ActionPlayer {
+		t.Fatalf("kind = %q, want %q", action.Kind, ActionPlayer)
+	}
+	if action.Target != string(PlayerYouTube) {
+		t.Fatalf("target = %q, want %q", action.Target, PlayerYouTube)
+	}
+	if len(action.Args) != 1 || action.Args[0] != "play-pause" {
+		t.Fatalf("args = %v, want [play-pause]", action.Args)
+	}
+}
+
+func TestPlayerKindControlsAreScopedToTheKind(t *testing.T) {
+	for _, kind := range []PlayerKind{PlayerSpotify, PlayerYouTube} {
+		controls := kind.Controls()
+		if len(controls) == 0 {
+			t.Fatalf("%s produced no controls", kind)
+		}
+		for _, control := range controls {
+			if control.ActionSpec.Target != string(kind) {
+				t.Errorf("%s control %q targets %q", kind, control.Title, control.ActionSpec.Target)
+			}
+			if control.Type != TypeMediaControl {
+				t.Errorf("control %q has type %q, want %q", control.Title, control.Type, TypeMediaControl)
+			}
+		}
+	}
+}

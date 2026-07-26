@@ -111,7 +111,7 @@ func executePlayerControl() {
 	if selected == nil || selected.Index() < 0 {
 		return
 	}
-	controls := modules.PlayerControls(playerMode)
+	controls := playerMode.Controls()
 	if selected.Index() >= len(controls) {
 		return
 	}

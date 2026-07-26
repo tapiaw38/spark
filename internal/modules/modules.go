@@ -60,22 +60,6 @@ func AllResultTypes() []ResultType {
 	}
 }
 
-type Result struct {
-	Type            ResultType
-	Title           string
-	Desc            string
-	Icon            string
-	IconText        string
-	Preview         string
-	PreviewImage    string
-	PreviewImageURL string
-	Data            string
-	KeepOpen        bool
-	Confirm         bool
-	NavigateQuery   string
-	ActionSpec      ActionSpec
-}
-
 type ActionKind string
 
 const (
@@ -207,4 +191,20 @@ func (a ActionSpec) WithStatus(status string) ActionSpec {
 
 func (a ActionSpec) IsZero() bool {
 	return a.Kind == ActionNone
+}
+
+type Result struct {
+	Type            ResultType
+	Title           string
+	Desc            string
+	Icon            string
+	IconText        string
+	Preview         string
+	PreviewImage    string
+	PreviewImageURL string
+	Data            string
+	KeepOpen        bool
+	Confirm         bool
+	NavigateQuery   string
+	ActionSpec      ActionSpec
 }

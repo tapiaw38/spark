@@ -536,7 +536,7 @@ func executeAppAction(action modules.ActionSpec) bool {
 		app.Icon = action.Args[1]
 	}
 	history.Record(app.Name)
-	if err := apps.Launch(app); err != nil {
+	if err := app.Launch(); err != nil {
 		modules.SetStatus(false, "Failed to launch "+app.Name+": "+err.Error())
 		return false
 	}

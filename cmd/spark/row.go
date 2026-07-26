@@ -77,7 +77,7 @@ type dragSourceWidget interface {
 }
 
 func setupFileDragSource(widget dragSourceWidget, r modules.Result) {
-	path := modules.GetFilePath(r)
+	path := r.FilePath()
 	if path == "" {
 		return
 	}
@@ -92,7 +92,7 @@ func setupFileDragSource(widget dragSourceWidget, r modules.Result) {
 
 	if modules.IsImageFile(r.Title) {
 		widget.ConnectDragBegin(func(context *gdk.DragContext) {
-			imagePath := modules.GetFilePath(r)
+			imagePath := r.FilePath()
 			if imagePath == "" {
 				return
 			}
